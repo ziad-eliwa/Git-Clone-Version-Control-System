@@ -43,7 +43,6 @@ TEST(VectorTest, Pop) {
 }
 
 TEST(VectorTest, OStreamOperator) {
-
   Vector<int> v1({10, 20, 30});
   std::stringstream ss1;
   ss1 << v1;

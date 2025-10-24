@@ -1,11 +1,13 @@
+#pragma once
 #include <initializer_list>
 #include <ostream>
 
+// Dynamic array
 template <class T> class Vector {
 private:
-  T *array;
   int capacity_;
   int size_;
+  T *array;
 
   void grow();
 
@@ -17,11 +19,10 @@ public:
   int size() const;
   int capacity() const;
   bool empty() const;
-  bool in_range(int index) const;
 
   T &get(int index);
-  void set(int index, T item);
   T &operator[](int index);
+  void set(int index, T item);
 
   void push_back(T item);
   T pop_back();
@@ -81,20 +82,13 @@ template <class T> T Vector<T>::pop_back() {
   return array[--size_];
 }
 
-template <class T> bool Vector<T>::in_range(int index) const {
-  return 0 <= index && index < size_;
-}
 template <class T> T &Vector<T>::get(int index) {
   if (!(0 <= index && index < capacity_))
     throw std::out_of_range("get: index out of range");
   return array[index];
 }
-template <class T> void Vector<T>::set(int index, T item) {
-  if (!(0 <= index && index < capacity_))
-    throw std::out_of_range("set: index out of range");
-  array[index] = item;
-}
 template <class T> T &Vector<T>::operator[](int index) { return get(index); }
+template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
 
 template <class T> T &Vector<T>::back() { return array[size_ - 1]; }
 template <class T> const T &Vector<T>::back() const { return array[size_ - 1]; }

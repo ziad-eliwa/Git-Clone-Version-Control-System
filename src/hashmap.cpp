@@ -42,12 +42,8 @@ uint32_t Murmur3_32(const uint8_t *data, int length, uint32_t seed) {
   h ^= h >> 16;
   return h;
 }
-template <class T> uint32_t Murmur3_32(T data, uint32_t seed) {
-  return Murmur3_32(reinterpret_cast<const uint8_t *>(data), sizeof(data),
-                    seed);
-}
 uint32_t Murmur3_32(const char *data, uint32_t seed) { // null-terminated
-  return Murmur3_32(reinterpret_cast<const uint8_t *>(data), strlen(data),
+  return Murmur3_32(reinterpret_cast<const uint8_t *>(data), std::strlen(data),
                     seed);
 }
 uint32_t Murmur3_32(const std::string &data, uint32_t seed) {

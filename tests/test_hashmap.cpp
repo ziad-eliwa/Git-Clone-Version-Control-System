@@ -17,3 +17,25 @@ TEST(HashMapTest, Hash) {
       Murmur3_32("The quick brown fox jumps over the lazy dog", 0x9747B28C),
       0x2fa826cd);
 }
+
+TEST(HashMapTest, HashMap) {
+  HashMap<int, int> hm;
+  for (int i = 100; i <= 1000; i += 100) {
+    hm[i] = i;
+    hm[i] = i;
+  }
+  EXPECT_EQ(hm.size(), 10);
+
+  for (int i = 100; i <= 1000; i += 100)
+    EXPECT_EQ(hm[i], i);
+}
+
+TEST(HashMapTest, LoadFactor) {
+  HashMap<int, int> hm;
+  for (int i = 0; i < 10000; i++) {
+    hm[i] = i;
+    EXPECT_LE(hm.load_factor(), hm.MAX_LOAD_FACTOR);
+  }
+  for (int i = 0; i < 10000; i++)
+    EXPECT_EQ(hm[i], i);
+}
