@@ -1,5 +1,6 @@
 #pragma once
 #include <initializer_list>
+#include <iostream>
 #include <ostream>
 
 // Dynamic array
@@ -15,6 +16,8 @@ public:
   Vector();
   Vector(int capacity);
   Vector(std::initializer_list<T> list);
+  Vector(const Vector<T> &other);
+  ~Vector();
 
   int size() const;
   int capacity() const;
@@ -35,6 +38,8 @@ public:
   const T &back() const;
   T &front();
   const T &front() const;
+
+  Vector<T> &operator=(const Vector<T> &other);
 
   template <class U>
   friend std::ostream &operator<<(std::ostream &os, Vector<U> &v);
@@ -62,6 +67,28 @@ template <class T> Vector<T>::Vector(std::initializer_list<T> list) {
     array[i++] = item;
   size_ = i;
 }
+template <class T>
+Vector<T>::Vector(const Vector<T> &other) : Vector(other.size()) {
+  for (int i = 0; i < other.size(); i++)
+    array[i] = other[i];
+}
+template <class T> Vector<T> &Vector<T>::operator=(const Vector<T> &other) {
+  if (this == &other)
+    return *this;
+
+  delete[] array;
+  capacity_ = other.capacity_, size_ = other.size_;
+  array = new T[capacity_];
+  for (int i = 0; i < other.size(); i++)
+    array[i] = other.array[i];
+  return *this;
+}
+template <class T> Vector<T>::~Vector() {
+  delete[] array;
+  array = nullptr;
+  size_ = 0;
+  capacity_ = 0;
+}
 
 template <class T> int Vector<T>::size() const { return size_; }
 template <class T> int Vector<T>::capacity() const { return capacity_; }
@@ -72,7 +99,7 @@ template <class T> void Vector<T>::grow() {
   T *newArray = new T[capacity_];
   for (int i = 0; i < size_; i++)
     newArray[i] = array[i];
-  delete array;
+  delete[] array;
   array = newArray;
 }
 template <class T> void Vector<T>::push_back(T item) {
@@ -87,7 +114,7 @@ template <class T> T Vector<T>::pop_back() {
 }
 
 template <class T> T &Vector<T>::get(int index) {
-  if (!(0 <= index && index < capacity_))
+  if (!(0 <= index && index < size_))
     throw std::out_of_range("get: index out of range");
   return array[index];
 }

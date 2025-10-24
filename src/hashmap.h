@@ -35,6 +35,7 @@ public:
   const double MAX_LOAD_FACTOR = 1;
 
   HashMap();
+  ~HashMap();
 
   int size() const;
   int capacity() const;
@@ -69,6 +70,7 @@ public:
 
 template <class K, class V>
 HashMap<K, V>::HashMap() : capacity_(1), size_(0), vector(capacity_) {}
+template <class K, class V> HashMap<K, V>::~HashMap() {}
 
 template <class K, class V> int HashMap<K, V>::size() const { return size_; }
 template <class K, class V> int HashMap<K, V>::capacity() const {
@@ -83,8 +85,6 @@ template <class K, class V> void HashMap<K, V>::grow() {
   Vector<Vector<KeyValuePair<K, V>>> newVector(capacity_);
   for (auto kvp : *this)
     newVector[Murmur3_32(kvp.key) & (capacity_ - 1)].push_back(kvp);
-
-  // delete vector; // TODO: create deconstructor
   vector = newVector;
 }
 
