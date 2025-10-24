@@ -27,6 +27,10 @@ public:
   void push_back(T item);
   T pop_back();
 
+  using Iterator = T *;
+  Iterator begin();
+  Iterator end();
+
   T &back();
   const T &back() const;
   T &front();
@@ -89,6 +93,8 @@ template <class T> T &Vector<T>::get(int index) {
 }
 template <class T> T &Vector<T>::operator[](int index) { return get(index); }
 template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
+template <class T> T *Vector<T>::begin() { return array; }
+template <class T> T *Vector<T>::end() { return array + size_; }
 
 template <class T> T &Vector<T>::back() { return array[size_ - 1]; }
 template <class T> const T &Vector<T>::back() const { return array[size_ - 1]; }
