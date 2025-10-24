@@ -5,8 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(DCVS_lib INTERFACE)
-target_include_directories(DCVS_lib INTERFACE src)
+add_library(DCVS_lib 
+  src/vector.h
+  src/hashmap.cpp
+  src/hashmap.h
+)
+target_include_directories(DCVS_lib PUBLIC src) 
 
 add_subdirectory(tests)
 

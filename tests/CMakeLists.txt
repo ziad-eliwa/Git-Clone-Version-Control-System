@@ -11,6 +11,7 @@ enable_testing()
 
 add_executable(test
   test_vector.cpp
+  test_hashmap.cpp
 )
 target_link_libraries(test PRIVATE DCVS_lib GTest::gtest_main)
 include(GoogleTest)
