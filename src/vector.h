@@ -1,0 +1,112 @@
+#include <initializer_list>
+#include <ostream>
+
+template <class T> class Vector {
+private:
+  T *array;
+  int capacity_;
+  int size_;
+
+  void grow();
+
+public:
+  Vector();
+  Vector(int capacity);
+  Vector(std::initializer_list<T> list);
+
+  int size() const;
+  int capacity() const;
+  bool empty() const;
+  bool in_range(int index) const;
+
+  T &get(int index);
+  void set(int index, T item);
+  T &operator[](int index);
+
+  void push_back(T item);
+  T pop_back();
+
+  T &back();
+  const T &back() const;
+  T &front();
+  const T &front() const;
+
+  template <class U>
+  friend std::ostream &operator<<(std::ostream &os, Vector<U> &v);
+};
+
+template <class T> Vector<T>::Vector() : capacity_(1), size_(0) {
+  array = new T[capacity_];
+}
+template <class T> Vector<T>::Vector(int size) : size_(size) {
+  capacity_ = 1;
+  while (capacity_ < size)
+    capacity_ <<= 1;
+  array = new T[capacity_];
+  for (int i = 0; i < size; i++)
+    array[i] = T();
+}
+template <class T> Vector<T>::Vector(std::initializer_list<T> list) {
+  capacity_ = 1;
+  while (capacity_ < list.size())
+    capacity_ <<= 1;
+  array = new T[capacity_];
+
+  int i = 0;
+  for (T item : list)
+    array[i++] = item;
+  size_ = i;
+}
+
+template <class T> int Vector<T>::size() const { return size_; }
+template <class T> int Vector<T>::capacity() const { return capacity_; }
+template <class T> bool Vector<T>::empty() const { return size_ == 0; }
+
+template <class T> void Vector<T>::grow() {
+  capacity_ <<= 1;
+  T *newArray = new T[capacity_];
+  for (int i = 0; i < size_; i++)
+    newArray[i] = array[i];
+  delete array;
+  array = newArray;
+}
+template <class T> void Vector<T>::push_back(T item) {
+  if (size_ + 1 > capacity_)
+    grow();
+  array[size_++] = item;
+}
+template <class T> T Vector<T>::pop_back() {
+  if (empty())
+    throw std::underflow_error("pop_back: cannot pop from empty Vector");
+  return array[--size_];
+}
+
+template <class T> bool Vector<T>::in_range(int index) const {
+  return 0 <= index && index < size_;
+}
+template <class T> T &Vector<T>::get(int index) {
+  if (!(0 <= index && index < capacity_))
+    throw std::out_of_range("get: index out of range");
+  return array[index];
+}
+template <class T> void Vector<T>::set(int index, T item) {
+  if (!(0 <= index && index < capacity_))
+    throw std::out_of_range("set: index out of range");
+  array[index] = item;
+}
+template <class T> T &Vector<T>::operator[](int index) { return get(index); }
+
+template <class T> T &Vector<T>::back() { return array[size_ - 1]; }
+template <class T> const T &Vector<T>::back() const { return array[size_ - 1]; }
+template <class T> T &Vector<T>::front() { return array[0]; }
+template <class T> const T &Vector<T>::front() const { return array[0]; }
+
+template <class T> std::ostream &operator<<(std::ostream &os, Vector<T> &v) {
+  os << '[';
+  for (int i = 0; i < v.size() - 1; i++)
+    os << v[i] << ", ";
+  if (!v.empty())
+    os << v.back();
+  os << ']';
+  return os;
+};
