@@ -41,6 +41,7 @@ public:
 
   Vector<T> &operator=(const Vector<T> &other);
 
+  void sort(Iterator begin, Iterator end);
   template <class U>
   friend std::ostream &operator<<(std::ostream &os, Vector<U> &v);
 };
@@ -122,11 +123,22 @@ template <class T> T &Vector<T>::operator[](int index) { return get(index); }
 template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
 template <class T> T *Vector<T>::begin() { return array; }
 template <class T> T *Vector<T>::end() { return array + size_; }
+template<class T> void Vector<T>::sort(Iterator begin, Iterator end) {
+    if (begin == end) return;
+    for (Iterator i = begin; i != end; ++i) {
+        for (Iterator j = i + 1; j != end; ++j) {
+            if (*j < *i) {
+                std::swap(*i, *j);
+            }
+        }
+    }
+}
 
 template <class T> T &Vector<T>::back() { return array[size_ - 1]; }
 template <class T> const T &Vector<T>::back() const { return array[size_ - 1]; }
 template <class T> T &Vector<T>::front() { return array[0]; }
 template <class T> const T &Vector<T>::front() const { return array[0]; }
+
 
 template <class T> std::ostream &operator<<(std::ostream &os, Vector<T> &v) {
   os << '[';
@@ -137,3 +149,7 @@ template <class T> std::ostream &operator<<(std::ostream &os, Vector<T> &v) {
   os << ']';
   return os;
 };
+
+
+
+
