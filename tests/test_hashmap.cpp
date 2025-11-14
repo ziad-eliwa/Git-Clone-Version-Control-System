@@ -1,5 +1,6 @@
 #include "hashmap.h"
 #include <gtest/gtest.h>
+#include <string>
 
 TEST(HashMapTest, Hash) {
   EXPECT_EQ(Murmur3_32("", 0x00000000), 0x00000000);
@@ -16,6 +17,14 @@ TEST(HashMapTest, Hash) {
   EXPECT_EQ(
       Murmur3_32("The quick brown fox jumps over the lazy dog", 0x9747B28C),
       0x2fa826cd);
+}
+TEST(HashMapTest, ToHex) {
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(to_hex(i), std::string(7, '0') + std::to_string(i));
+  for (int i = 0; i < 6; i++)
+    EXPECT_EQ(to_hex(10 + i), std::string(7, '0') + std::string(1, 'a' + i));
+  EXPECT_EQ(to_hex(16), "00000010");
+  EXPECT_EQ(to_hex(Murmur3_32("", 0x00000001)), "514e28b7");
 }
 
 TEST(HashMapTest, HashMap) {

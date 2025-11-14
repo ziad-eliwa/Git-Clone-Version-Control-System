@@ -52,3 +52,17 @@ uint32_t Murmur3_32(const std::string &data, uint32_t seed) {
   return Murmur3_32(reinterpret_cast<const uint8_t *>(data.data()),
                     data.length(), seed);
 }
+
+std::string to_hex(uint32_t value) {
+  // fixed-length 8-digit hex
+  std::string ret(8, '0');
+  for (int i = 7; i >= 0; i--) {
+    int x = value & 0xf;
+    if (x < 10)
+      ret[i] = '0' + x;
+    else
+      ret[i] = 'a' + (x - 10);
+    value >>= 4;
+  }
+  return ret;
+}

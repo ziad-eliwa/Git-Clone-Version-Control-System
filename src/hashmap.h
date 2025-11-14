@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <ostream>
+#include <string>
 #include <type_traits>
 
 // See https://en.wikipedia.org/wiki/MurmurHash
@@ -21,6 +22,8 @@ public:
   K key;
   V value;
 };
+
+std::string to_hex(uint32_t value);
 
 // Hash table using chaining
 template <class K, class V> class HashMap {
