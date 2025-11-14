@@ -11,12 +11,16 @@ add_library(DCVS_lib
   src/hashmap.h
   src/Trie.cpp
   src/Trie.h
+  src/object_store.cpp
+  src/object_store.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
+
 
 add_executable(jit
   src/main.cpp
 )
+target_link_libraries(jit PRIVATE DCVS_lib)
 
 add_subdirectory(tests)
 

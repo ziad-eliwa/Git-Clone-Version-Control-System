@@ -1,3 +1,4 @@
+#include "object_store.h"
 #include <iostream>
 
 const std::string HELP_MESSAGE = "usage: jit <command> [<args>]\n\n"
@@ -10,15 +11,19 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  ObjectStore store(".jit/objects/");
+
   std::string command = argv[1];
   if (command == "store") {
     if (argc < 3) {
       std::cout << "invalid usage: missing file name\n\n"
-                   "usage: jit store <file_name>"
+                   "usage: jit store <file_path>"
                 << std::endl;
       return 0;
     }
-    std::string file_name = argv[2];
+    std::string filePath = argv[2];
+    store.store(filePath);
+
   } else {
     std::cout << "unknown command: " << command << "\n\n"
               << HELP_MESSAGE << std::endl;
