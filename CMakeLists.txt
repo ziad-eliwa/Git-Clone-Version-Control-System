@@ -9,10 +9,14 @@ add_library(DCVS_lib
   src/vector.h
   src/hashmap.cpp
   src/hashmap.h
-        src/Trie.cpp
-        src/Trie.h
+  src/Trie.cpp
+  src/Trie.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
+
+add_executable(jit
+  src/main.cpp
+)
 
 add_subdirectory(tests)
 
