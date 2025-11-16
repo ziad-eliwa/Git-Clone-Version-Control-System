@@ -17,8 +17,6 @@ class Stack {
     bool isFull();
     void push(T);
     int pop();
-
-
 };
 
 

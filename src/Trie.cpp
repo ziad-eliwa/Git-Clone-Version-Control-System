@@ -1,7 +1,3 @@
-//
-// Created by Ali Ahmed  on 26/10/2025.
-//
-
 #include "Trie.h"
 using namespace std;
 Trie::Trie() {

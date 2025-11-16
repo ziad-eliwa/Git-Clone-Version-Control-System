@@ -1,9 +1,4 @@
-//
-// Created by Ali Ahmed  on 18/10/2025.
-//
-#include <iostream>
 #include "stack.h"
-
 using namespace std;
 template<class T>
 Stack <T>::Stack(int cap) {

@@ -18,7 +18,7 @@ target_include_directories(DCVS_lib PUBLIC src)
 
 
 add_executable(jit
-  src/main.cpp
+  main.cpp
 )
 target_link_libraries(jit PRIVATE DCVS_lib)
 

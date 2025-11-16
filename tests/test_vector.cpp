@@ -1,4 +1,4 @@
-#include "vector.h"
+#include "../src/vector.h"
 #include <gtest/gtest.h>
 #include <sstream>
 

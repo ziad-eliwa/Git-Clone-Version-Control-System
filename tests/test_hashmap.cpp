@@ -1,4 +1,4 @@
-#include "hashmap.h"
+#include "../src/hashmap.h"
 #include <gtest/gtest.h>
 #include <string>
 
@@ -48,3 +48,4 @@ TEST(HashMapTest, LoadFactor) {
   for (int i = 0; i < 10000; i++)
     EXPECT_EQ(hm[i], i);
 }
+
