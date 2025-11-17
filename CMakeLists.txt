@@ -13,6 +13,8 @@ add_library(DCVS_lib
   src/Trie.h
   src/object_store.cpp
   src/object_store.h
+  src/argparser.cpp
+  src/argparser.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
 

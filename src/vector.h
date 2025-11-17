@@ -25,6 +25,8 @@ public:
 
   T &get(int index);
   T &operator[](int index);
+  T &get(int index) const;
+  T &operator[](int index) const;
   void set(int index, T item);
 
   void push_back(T item);
@@ -120,25 +122,31 @@ template <class T> T &Vector<T>::get(int index) {
   return array[index];
 }
 template <class T> T &Vector<T>::operator[](int index) { return get(index); }
+template <class T> T &Vector<T>::get(int index) const {
+  return const_cast<Vector<T> *>(this)->get(index);
+}
+template <class T> T &Vector<T>::operator[](int index) const {
+  return get(index);
+}
 template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
 template <class T> T *Vector<T>::begin() { return array; }
 template <class T> T *Vector<T>::end() { return array + size_; }
-template<class T> void Vector<T>::sort(Iterator begin, Iterator end) {
-    if (begin == end) return;
-    for (Iterator i = begin; i != end; ++i) {
-        for (Iterator j = i + 1; j != end; ++j) {
-            if (*j < *i) {
-                std::swap(*i, *j);
-            }
-        }
+template <class T> void Vector<T>::sort(Iterator begin, Iterator end) {
+  if (begin == end)
+    return;
+  for (Iterator i = begin; i != end; ++i) {
+    for (Iterator j = i + 1; j != end; ++j) {
+      if (*j < *i) {
+        std::swap(*i, *j);
+      }
     }
+  }
 }
 
 template <class T> T &Vector<T>::back() { return array[size_ - 1]; }
 template <class T> const T &Vector<T>::back() const { return array[size_ - 1]; }
 template <class T> T &Vector<T>::front() { return array[0]; }
 template <class T> const T &Vector<T>::front() const { return array[0]; }
-
 
 template <class T> std::ostream &operator<<(std::ostream &os, Vector<T> &v) {
   os << '[';
@@ -149,7 +157,3 @@ template <class T> std::ostream &operator<<(std::ostream &os, Vector<T> &v) {
   os << ']';
   return os;
 };
-
-
-
-
