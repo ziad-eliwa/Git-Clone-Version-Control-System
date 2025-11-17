@@ -6,9 +6,10 @@ class IOption {
 public:
   std::string name;
   std::string description;
+  bool required;
 
   virtual ~IOption() = default;
-  IOption(std::string name, std::string description);
+  IOption(std::string name, std::string description, bool required = false);
   virtual int parse(int argc, char *argv[]) = 0;
 };
 
@@ -17,7 +18,8 @@ private:
   T &data;
 
 public:
-  Option(T &data, std::string name, std::string description);
+  Option(T &data, std::string name, std::string description,
+         bool required = false);
   int parse(int argc, char *argv[]) override;
 };
 using Flag = Option<bool>;
@@ -59,8 +61,9 @@ public:
   template <class T>
   ArgParser &add_argument(T &data, std::string name, std::string description);
   template <class T>
-  ArgParser &add_option(T &data, std::string name, std::string description);
+  ArgParser &add_option(T &data, std::string name, std::string description,
+                        bool required = false);
   ArgParser &set_callback(std::function<void()> callback);
 
-  bool parse_args(int argc, char *argv[]);
+  bool parse(int argc, char *argv[]);
 };

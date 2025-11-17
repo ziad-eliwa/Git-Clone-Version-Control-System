@@ -14,7 +14,7 @@ private:
 
 public:
   Vector();
-  Vector(int capacity);
+  Vector(int size, T initial = T());
   Vector(std::initializer_list<T> list);
   Vector(const Vector<T> &other);
   ~Vector();
@@ -51,13 +51,13 @@ public:
 template <class T> Vector<T>::Vector() : capacity_(1), size_(0) {
   array = new T[capacity_];
 }
-template <class T> Vector<T>::Vector(int size) : size_(size) {
+template <class T> Vector<T>::Vector(int size, T initial) : size_(size) {
   capacity_ = 1;
   while (capacity_ < size)
     capacity_ <<= 1;
   array = new T[capacity_];
   for (int i = 0; i < size; i++)
-    array[i] = T();
+    array[i] = initial;
 }
 template <class T> Vector<T>::Vector(std::initializer_list<T> list) {
   capacity_ = 1;

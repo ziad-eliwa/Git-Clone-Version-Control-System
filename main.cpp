@@ -20,13 +20,13 @@ int main(int argc, char *argv[]) {
   ArgParser parser(argv[0], HELP_MESSAGE);
   std::string filePath;
   parser.add_command("store", "Insert file into the object store")
-      .add_argument(filePath, "file_path", "")
       .set_callback([&]() {
         tree test;
         std::cout << filePath << std::endl;
         store.store(filePath, test);
-      });
+      })
+      .add_argument(filePath, "file_path", "");
 
-  parser.parse_args(argc, argv);
+  parser.parse(argc, argv);
   return 0;
 }

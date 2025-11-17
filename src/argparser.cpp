@@ -1,11 +1,12 @@
 #include "argparser.h"
 #include <stdexcept>
 
-IOption::IOption(std::string name, std::string description)
-    : name(name), description(description) {}
+IOption::IOption(std::string name, std::string description, bool required)
+    : name(name), description(description), required(required) {}
 template <class T>
-Option<T>::Option(T &data, std::string name, std::string description)
-    : IOption(name, description), data(data) {}
+Option<T>::Option(T &data, std::string name, std::string description,
+                  bool required)
+    : IOption(name, description, required), data(data) {}
 
 // instatiate string and bool options
 template <> int Option<std::string>::parse(int argc, char *argv[]) {
@@ -64,8 +65,8 @@ ArgParser::add_argument<std::string>(std::string &data, std::string name,
                                      std::string description);
 template <class T>
 ArgParser &ArgParser::add_option(T &data, std::string name,
-                                 std::string description) {
-  IOption *option = new Option(data, name, description);
+                                 std::string description, bool required) {
+  IOption *option = new Option(data, name, description, required);
   options.push_back(option);
   return *this;
 }
@@ -73,37 +74,41 @@ ArgParser &ArgParser::add_option(T &data, std::string name,
 // instantiate add_option for strings and bools
 template ArgParser &ArgParser::add_option<std::string>(std::string &data,
                                                        std::string name,
-                                                       std::string description);
+                                                       std::string description,
+                                                       bool required);
 template ArgParser &ArgParser::add_option<bool>(bool &data, std::string name,
-                                                std::string description);
+                                                std::string description,
+                                                bool required);
 
 ArgParser &ArgParser::set_callback(std::function<void()> cb) {
   callback = cb;
   return *this;
 }
 
-bool ArgParser::parse_args(int argc, char *argv[]) {
-  if (argc < 0)
+bool ArgParser::parse(int argc, char *argv[]) {
+  if (argc < 1)
     return false;
   if (name != argv[0])
     return false;
 
+  int i = 1;
   for (auto cmd : commands) {
-    if (cmd->parse_args(argc - 1, (argv + 1)))
+    if (cmd->parse(argc - i, (argv + i)))
       return true;
   }
 
-  int i = 1;
   for (auto &arg : arguments) {
     arg->parse(argc - i, (argv + i));
     i++;
   }
 
+  Vector<bool> seen(options.size(), false);
   while (i < argc) {
     bool anyMatched = false;
-    for (auto opt : options) {
-      int di = opt->parse(argc - i, (argv + i));
+    for (int j = 0; j < options.size(); j++) {
+      int di = options[j]->parse(argc - i, (argv + i));
       if (di) {
+        seen[j] = true;
         anyMatched = true;
         i += di;
         break;
@@ -111,6 +116,11 @@ bool ArgParser::parse_args(int argc, char *argv[]) {
     }
     if (!anyMatched)
       throw std::runtime_error(std::string("unrecognized option: ") + argv[i]);
+  }
+  for (int i = 0; i < options.size(); i++) {
+    if (options[i]->required && !seen[i])
+      throw std::runtime_error(
+          std::string("missing required option: " + options[i]->name));
   }
   // if (i < argc) // extra unparsed args
   if (callback != nullptr)
