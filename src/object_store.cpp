@@ -12,35 +12,37 @@ ObjectStore::ObjectStore(std::string sp) {
   }
 };
 
-void ObjectStore::store(std::string filePath) {
+blob ObjectStore::storeBlob(std::string filePath) {
   std::ifstream file(filePath, std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
 
-  uint32_t hash =
-      Murmur3_32(filePath + std::to_string(content.size()) + content);
-
-  std::ofstream object(storePath + "/" + to_hex(hash), std::ios::binary);
-  object << content;
+  blob b(filePath, content);
+  std::ofstream object(storePath + "/" + b.getHash(), std::ios::binary|std::ios::app);
+  object << b.getContent();
+  object.close();
+  object.flush();
+  return b;
 };
 
-void ObjectStore::storeTree(std::string filepath, tree &t) {
-  for (const auto &entry : std::filesystem::directory_iterator(filepath)) {
-    if (entry.is_directory()) {
-      tree subtree;
-      storeTree(entry.path(), subtree);
-      t.addSubTree(entry.path().filename().string(), subtree);
-    } else {
-      std::ifstream file(entry.path(), std::ios::binary);
-      std::string content((std::istreambuf_iterator<char>(file)),
-                          std::istreambuf_iterator<char>());
-
-      blob b(entry.path().filename().string(), content);
-      t.addBlob(b);
-      std::ofstream object(storePath + "/" + b.getHash(), std::ios::binary);
-      object << b.getContent();
+void ObjectStore::store(std::string filepath, tree &t) {
+  if (!std::filesystem::is_directory(filepath)) {
+    blob b = storeBlob(filepath);
+    t.addBlob(b);
+  } else {
+    for (const auto &entry : std::filesystem::directory_iterator(filepath)) {
+      if (entry.is_directory()) {
+        tree subtree;
+        store(entry.path(), subtree);
+        t.addSubTree(entry.path().filename().string(), subtree);
+      } else {
+        blob b = storeBlob(entry.path());
+        t.addBlob(b);
+      }
     }
   }
-  std::ofstream object(storePath + "/" + t.getHash(), std::ios::binary);
+  std::ofstream object(storePath + "/" + t.getHash(), std::ios::binary|std::ios::app);
   object << t.serialize();
+  object.close();
+  object.flush();
 }

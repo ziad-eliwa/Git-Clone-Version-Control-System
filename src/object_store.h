@@ -1,4 +1,3 @@
-#include "hashmap.h"
 #include "gitobjects.h"
 #include <string>
 
@@ -8,6 +7,6 @@ private:
 
 public:
   ObjectStore(std::string storePath);
-  void store(std::string filePath);
-  void storeTree(std::string filePath,tree &t);
+  blob storeBlob(std::string filePath);
+  void store(std::string filePath,tree &t);
 };

@@ -29,9 +29,8 @@ int main(int argc, char *argv[]) {
                 << std::endl;
       return 0;
     }
-
     tree test;
-    store.storeTree(argv[2], test);
+    store.store(argv[2], test);
   } else {
     std::cout << "unknown command: " << command << "\n\n"
               << HELP_MESSAGE << std::endl;
