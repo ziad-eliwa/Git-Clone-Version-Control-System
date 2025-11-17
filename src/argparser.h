@@ -65,5 +65,7 @@ public:
                         bool required = false);
   ArgParser &set_callback(std::function<void()> callback);
 
+  std::string help_message() const;
+
   bool parse(int argc, char *argv[]);
 };

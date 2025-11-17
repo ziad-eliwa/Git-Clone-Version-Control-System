@@ -33,8 +33,8 @@ public:
   T pop_back();
 
   using Iterator = T *;
-  Iterator begin();
-  Iterator end();
+  Iterator begin() const;
+  Iterator end() const;
 
   T &back();
   const T &back() const;
@@ -129,8 +129,8 @@ template <class T> T &Vector<T>::operator[](int index) const {
   return get(index);
 }
 template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
-template <class T> T *Vector<T>::begin() { return array; }
-template <class T> T *Vector<T>::end() { return array + size_; }
+template <class T> T *Vector<T>::begin() const { return array; }
+template <class T> T *Vector<T>::end() const { return array + size_; }
 template <class T> void Vector<T>::sort(Iterator begin, Iterator end) {
   if (begin == end)
     return;

@@ -8,18 +8,18 @@
 // Branching: reset, merge, rebase, diff
 // Networking: push pull, fetch
 
-const std::string storePath = ".jit/objects/";
-const std::string HELP_MESSAGE =
-    "usage: jit <command> [<args>]\n\n"
-    "Here is a list of the available commands:\n"
-    "  store   Insert file into the object store"; // test
+const std::string STORE_PATH = ".jit/objects/";
 
 int main(int argc, char *argv[]) {
-  ObjectStore store(storePath);
+  ObjectStore store(STORE_PATH);
 
-  ArgParser parser(argv[0], HELP_MESSAGE);
+  ArgParser parser(argv[0], "Jit is a version control system.");
+  parser.add_command("help", "Show this help message").set_callback([&]() {
+    std::cout << parser.help_message() << std::endl;
+  });
+
   std::string filePath;
-  parser.add_command("store", "Insert file into the object store")
+  parser.add_command("store", "Insert file or directory into the object store")
       .set_callback([&]() {
         tree test;
         std::cout << filePath << std::endl;
