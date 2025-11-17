@@ -1,10 +1,17 @@
+#include "gitobjects.h"
 #include "object_store.h"
 #include <iostream>
 
 // We store the instructions we have here
-const std::string HELP_MESSAGE = "usage: jit <command> [<args>]\n\n"
-                                 "Here is a list of the available commands:\n"
-                                 "  store   Insert file into the object store";  // test
+// Staging Area: add, commit, log, status
+// Branching: reset, merge, rebase, diff
+// Networking: push pull, fetch
+
+const std::string storePath = ".jit/objects/";
+const std::string HELP_MESSAGE =
+    "usage: jit <command> [<args>]\n\n"
+    "Here is a list of the available commands:\n"
+    "  store   Insert file into the object store"; // test
 
 int main(int argc, char *argv[]) {
   if (argc == 1) {
@@ -12,7 +19,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  ObjectStore store(".jit/objects/");
+  ObjectStore store(storePath);
 
   std::string command = argv[1];
   if (command == "store") {
@@ -22,11 +29,9 @@ int main(int argc, char *argv[]) {
                 << std::endl;
       return 0;
     }
-    for (int j = 2; j < argc; j++) {
-      std::string filePath = argv[j];
-      store.store(filePath);
-    }
 
+    tree test;
+    store.storeTree(argv[2], test);
   } else {
     std::cout << "unknown command: " << command << "\n\n"
               << HELP_MESSAGE << std::endl;

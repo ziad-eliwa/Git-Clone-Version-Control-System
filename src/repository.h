@@ -13,7 +13,6 @@ private:
   time_t timestamp;
   Vector<std::string> parentHashes;
   std::string message;
-
 public:
   commit(std::string msg, std::string author, std::string treehash)
       : message(msg), treeHash(treeHash), author(author) {
