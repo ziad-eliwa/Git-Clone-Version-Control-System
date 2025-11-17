@@ -1,3 +1,4 @@
+#include "argparser.h"
 #include "gitobjects.h"
 #include "object_store.h"
 #include <iostream>
@@ -14,28 +15,18 @@ const std::string HELP_MESSAGE =
     "  store   Insert file into the object store"; // test
 
 int main(int argc, char *argv[]) {
-  if (argc == 1) {
-    std::cout << HELP_MESSAGE << std::endl;
-    return 0;
-  }
-
   ObjectStore store(storePath);
 
-  std::string command = argv[1];
-  if (command == "store") {
-    if (argc < 3) {
-      std::cout << "invalid usage: missing file name\n\n"
-                   "usage: jit store <file_path>"
-                << std::endl;
-      return 0;
-    }
-    tree test;
-    store.store(argv[2], test);
-  } else {
-    std::cout << "unknown command: " << command << "\n\n"
-              << HELP_MESSAGE << std::endl;
-    return 0;
-  }
+  ArgParser parser(argv[0], HELP_MESSAGE);
+  std::string filePath;
+  parser.add_command("store", "Insert file into the object store")
+      .add_argument(filePath, "file_path", "")
+      .set_callback([&]() {
+        tree test;
+        std::cout << filePath << std::endl;
+        store.store(filePath, test);
+      });
 
+  parser.parse_args(argc, argv);
   return 0;
 }
