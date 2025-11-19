@@ -15,12 +15,14 @@ add_library(DCVS_lib
   src/object_store.h
   src/argparser.cpp
   src/argparser.h
+        src/Index.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
 
 
 add_executable(jit
   main.cpp
+        src/Index.h
 )
 target_link_libraries(jit PRIVATE DCVS_lib)
 

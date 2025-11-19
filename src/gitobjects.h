@@ -9,7 +9,7 @@
 
 class blob {
 private:
-  
+
   std::string name;
   std::string content;
   std::string hash;
