@@ -15,20 +15,21 @@ namespace fs = std::filesystem;
 const std::string REPO_ROOT = ".jit";
 const std::string STORE_PATH = ".jit/objects/";
 // Helper function used to stage files
-void stage_file(std::string path, ObjectStore& store, Index& index) {
+void stage_file(std::string path, Index& index) {
+    if (!fs::exists(path)) return;
+    index.add(path);
 
-    blob b = store.storeBlob(path);
-    index.add(path, b.getHash());
     std::cout << "Added " << path << std::endl;
 }
 // helper function used to stage directories
-void stage_directory(std::string dirPath, ObjectStore& store, Index& index) {
+void stage_directory(std::string dirPath, Index& index) {
+    if (!fs::exists(dirPath)) return;
+
     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
         std::string path = entry.path().string();
-
-        if (path.find(".jit") != std::string::npos) continue;
+        if (path.find(REPO_ROOT) != std::string::npos) continue;
         if (!entry.is_directory()) {
-            stage_file(path, store, index);
+            stage_file(path, index);
         }
     }
 }
@@ -41,18 +42,19 @@ int main(int argc, char *argv[]) {
   });
     std::string fileToAdd;
     parser.add_command("add", "Add file contents to the index")
-   .add_argument(fileToAdd,"Path","File to add")
-    .set_callback([&]() {
+          .add_argument(fileToAdd, "Path", "File to add")
+          .set_callback([&]() {
+              Index index(REPO_ROOT, store);
 
-        Index index (REPO_ROOT);
-        if (fs::is_directory(fileToAdd)) {
-            stage_directory(fileToAdd, store, index);
-        }else if (fs::is_regular_file(fileToAdd)) {
-            stage_file(fileToAdd, store, index);
-        }
-        index.save();
-
-    });
+              if (fs::is_directory(fileToAdd)) {
+                  stage_directory(fileToAdd, index);
+              } else if (fs::exists(fileToAdd)) {
+                  stage_file(fileToAdd, index);
+              } else {
+                  std::cerr << "fatal: pathspec '" << fileToAdd << "' did not match any files\n";
+                  return;
+              }
+          });
   // serializing and storing the tree
   // This command is only for testing
   std::string filePath;

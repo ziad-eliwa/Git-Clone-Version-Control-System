@@ -1,3 +1,4 @@
+#pragma once
 #include "gitobjects.h"
 #include <string>
 

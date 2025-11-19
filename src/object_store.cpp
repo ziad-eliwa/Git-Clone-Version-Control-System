@@ -1,5 +1,5 @@
-#include "gitobjects.h"
 #include "object_store.h"
+#include "gitobjects.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
@@ -53,16 +53,16 @@ void ObjectStore::store(std::string filepath, tree &t) {
 }
 
 blob ObjectStore::retrieveBlob(std::string &name, std::string &blobHash) {
-  std::string filePath(".jit/objects/" + blobHash);
+  std::string filePath(storePath + "/" + blobHash);
   std::ifstream file(filePath, std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
 
-  return blob(name,content);
+  return blob(name, content);
 }
 
 tree ObjectStore::retrieveTree(std::string &treeHash) {
-  std::string filePath(".jit/objects/" + treeHash);
+  std::string filePath(storePath + "/" + treeHash);
   std::ifstream file(filePath, std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
@@ -81,7 +81,7 @@ tree ObjectStore::retrieveTree(std::string &treeHash) {
       tree subtree = retrieveTree(result[i + 1]);
       t.addSubTree(result[i], subtree);
     } else {
-      blob blb = retrieveBlob(result[i],result[i + 1]);
+      blob blb = retrieveBlob(result[i], result[i + 1]);
       t.addBlob(blb);
     }
   }
