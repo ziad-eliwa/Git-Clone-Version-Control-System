@@ -20,6 +20,7 @@ private:
 public:
     Index(std::string filePath) {
         this->filePath = (filePath+"/index");
+        load();
     }
     void add(std::string path,std::string hash) {
         fileContents.set(hash, path);
