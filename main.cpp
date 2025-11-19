@@ -1,39 +1,40 @@
+#include "Index.h"
 #include "argparser.h"
+#include "commit.h"
 #include "gitobjects.h"
 #include "object_store.h"
 #include <filesystem>
 #include <iostream>
-#include "Index.h"
-#include <filesystem>
-
+#include <pwd.h>
+#include <unistd.h>
 
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
 // Networking: push pull, fetch
-
-namespace fs = std::filesystem;
-const std::string REPO_ROOT = ".jit";
 const std::string STORE_PATH = ".jit/objects/";
-// Helper function used to stage files
-void stage_file(std::string path, Index& index) {
-    if (!fs::exists(path)) return;
-    index.add(path);
+const std::string REPO_ROOT = ".jit";
 
-    std::cout << "Added " << path << std::endl;
-}
-// helper function used to stage directories
-void stage_directory(std::string dirPath, Index& index) {
-    if (!fs::exists(dirPath)) return;
+// namespace fs = std::filesystem;
+// // Helper function used to stage files
+// void stage_file(std::string path, Index& index) {
+//     if (!fs::exists(path)) return;
+//     index.add(path);
 
-    for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
-        std::string path = entry.path().string();
-        if (path.find(REPO_ROOT) != std::string::npos) continue;
-        if (!entry.is_directory()) {
-            stage_file(path, index);
-        }
-    }
-}
+//     std::cout << "Added " << path << std::endl;
+// }
+// // helper function used to stage directories
+// void stage_directory(std::string dirPath, Index& index) {
+//     if (!fs::exists(dirPath)) return;
+
+//     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
+//         std::string path = entry.path().string();
+//         if (path.find(REPO_ROOT) != std::string::npos) continue;
+//         if (!entry.is_directory()) {
+//             stage_file(path, index);
+//         }
+//     }
+// }
 int main(int argc, char *argv[]) {
   ObjectStore store;
 
@@ -41,21 +42,22 @@ int main(int argc, char *argv[]) {
   parser.add_command("help", "Show this help message").set_callback([&]() {
     std::cout << parser.help_message() << std::endl;
   });
-    std::string fileToAdd;
-    parser.add_command("add", "Add file contents to the index")
-          .add_argument(fileToAdd, "Path", "File to add")
-          .set_callback([&]() {
-              Index index(REPO_ROOT, store);
+  // std::string fileToAdd;
+  // parser.add_command("add", "Add file contents to the index")
+  //     .add_argument(fileToAdd, "Path", "File to add")
+  //     .set_callback([&]() {
+  //       Index index(REPO_ROOT, store);
 
-              if (fs::is_directory(fileToAdd)) {
-                  stage_directory(fileToAdd, index);
-              } else if (fs::exists(fileToAdd)) {
-                  stage_file(fileToAdd, index);
-              } else {
-                  std::cerr << "fatal: pathspec '" << fileToAdd << "' did not match any files\n";
-                  return;
-              }
-          });
+  //       if (fs::is_directory(fileToAdd)) {
+  //         stage_directory(fileToAdd, index);
+  //       } else if (fs::exists(fileToAdd)) {
+  //         stage_file(fileToAdd, index);
+  //       } else {
+  //         std::cerr << "fatal: pathspec '" << fileToAdd
+  //                   << "' did not match any files\n";
+  //         return;
+  //       }
+  //     });
   // serializing and storing the tree
   // This command is only for testing
   std::string filePath;
@@ -88,19 +90,29 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
-
+        IndexStore index(STORE_PATH, store);
+        index.add(filePath);
+        index.save();
+        std::cout << "Added successfuly\n";
       })
       .add_argument(filePath, "File Path", "");
-  
+
   std::string commitMessage;
-  parser.add_command("commit -m", "Add file to the staging area")
+  parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
-          if(commitMessage[0] == '"' && commitMessage[commitMessage.length()-1] == '"') {
+        // Not functioning yet.
+        IndexStore index(STORE_PATH, store);
 
-          } else std::cout << "Commit message must be between double quotations.";
+        // Needed: build tree from indexes and store the tree in .jit/objects/
+        tree CommitTree = index.convertToTree();
+
+        uid_t uid = getuid();
+        passwd *pw = getpwuid(uid);
+        commit newCommit(commitMessage, pw->pw_name,CommitTree.getHash());
+        index.clearIndex();
       })
-      .add_argument(commitMessage, "Commit Message", "Must be between double quotations.");
-
+      .add_argument(commitMessage, "Commit Message",
+                    "Must be between double quotations.");
 
   // Jit repository checking
   if (!std::filesystem::exists(".jit")) {

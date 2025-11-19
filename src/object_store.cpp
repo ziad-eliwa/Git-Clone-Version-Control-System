@@ -22,7 +22,7 @@ blob ObjectStore::storeBlob(std::string filePath) {
 
   blob b(filePath, content);
   std::ofstream object(storePath + "/" + b.getHash(),
-                       std::ios::binary | std::ios::app);
+                       std::ios::binary);
   object << b.getContent();
   object.close();
   object.flush();
@@ -46,7 +46,7 @@ void ObjectStore::store(std::string filepath, tree &t) {
     }
   }
   std::ofstream object(storePath + "/" + t.getHash(),
-                       std::ios::binary | std::ios::app);
+                       std::ios::binary);
   object << t.serialize();
   object.close();
   object.flush();
