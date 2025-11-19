@@ -1,83 +1,110 @@
 #pragma once
 #include "hashmap.h"
+#include "helpers.h"
 #include "vector.h"
 #include <ctime>
+#include <sstream>
 #include <string>
 
 // Structure resource:
 // https://www.freecodecamp.org/news/git-internals-objects-branches-create-repo/
 
-class blob {
-private:
-
-  std::string name;
-  std::string content;
+class GitObject {
+public:
   std::string hash;
+  virtual std::string getHash() const { return hash; }
+  virtual std::string serialize() = 0;
+  virtual ~GitObject() = default;
+};
+
+class Blob : public GitObject {
+private:
+  std::string content;
 
 public:
-  blob() = default;
-  blob(std::string name, std::string &content) : name(name), content(content) {
-    hash = computeHash();
+  Blob() = default;
+  Blob(std::string content) : content(content) {
+    hash = computeHash(serialize());
   }
 
-  std::string computeHash() {
-    return to_hex(Murmur3_32(serialize()));
-  }
-
-  std::string serialize() {
-    return "blob\0" + name + '\0'+ std::to_string(content.length()) + '\0' + content;
+  std::string serialize() override {
+    return "blob " + std::to_string(content.length()) + '\n' + content;
   }
 
   std::string getContent() { return content; }
-  std::string getHash() { return hash; }
-  std::string getName() { return name; }
 };
 
-class tree {
-private:
-  struct treeEntry {
-    std::string type;
-    std::string hash;
-    std::string name;
-    treeEntry() = default;
-    treeEntry(std::string t, std::string h, std::string n)
-        : type(t), hash(h), name(n) {}
-    // For sorting entries
-    bool operator<(const treeEntry &other) const { return name < other.name; }
-    std::string serialize() const { return name + '\0' + hash; }
-  };
-  Vector<treeEntry> entries;
-  std::string hash;
+class TreeEntry : public GitObject {
+public:
+  std::string type;
   std::string name;
-
-  void addEntry(const treeEntry &entry) {
-    entries.push_back(entry);
-    entries.sort(entries.begin(), entries.end());
-    hash = computeHash();
+  TreeEntry() = default;
+  TreeEntry(std::string t, std::string n, std::string h) : type(t), name(n) {
+    hash = h;
   }
-  std::string computeHash() { return to_hex(Murmur3_32(serialize())); }
+  // For sorting entries
+  bool operator<(const TreeEntry &other) const { return name < other.name; }
+  std::string serialize() override { return type + ' ' + name + ' ' + hash; }
+};
+
+class Tree : public GitObject {
+private:
+  Vector<TreeEntry> entries;
 
 public:
-  std::string serialize() {
-    std::string result = "";
-    for (int i = 0; i < entries.size(); i++) {
-      result += entries[i].serialize() + '\0';
-    }
-    return "tree\0" + std::to_string(entries.size()) + '\0' + result;
+  void addEntry(const TreeEntry &entry) {
+    entries.push_back(entry);
+    entries.sort();
+    hash = computeHash(serialize());
   }
-  tree() = default;
 
-  void addBlob(blob &b) {
-    treeEntry te("blob", b.computeHash(), b.getName());
+  std::string serialize() override {
+    std::string result = "tree " + std::to_string(entries.size()) + '\n';
+    for (int i = 0; i < entries.size(); i++)
+      result += entries[i].serialize() + '\n';
+    return result;
+  }
+  Tree() = default;
+
+  void addBlob(std::string blobName, Blob &b) {
+    TreeEntry te("blob", blobName, b.getHash());
     addEntry(te);
   }
 
-  void addSubTree(std::string dirname, tree &t) {
-    t.name = dirname;
-    treeEntry te("tree", t.hash, t.name);
+  void addSubTree(std::string treeName, Tree &t) {
+    TreeEntry te("tree", treeName, t.getHash());
     addEntry(te);
   }
 
-  std::string getHash() const { return hash; }
-  const Vector<treeEntry> &getEntries() const { return entries; }
+  const Vector<TreeEntry> &getEntries() const { return entries; }
+};
+
+class Commit : public GitObject {
+private:
+  std::string treeHash;
+  std::string author;
+  time_t timestamp;
+  Vector<std::string> parentHashes;
+  std::string message;
+
+public:
+  Commit(std::string msg, std::string author, std::string treeHash)
+      : message(msg), treeHash(treeHash), author(author) {
+    timestamp = time_t(nullptr);
+    hash = computeHash(serialize());
+  }
+
+  std::string serialize() override {
+    std::string result =
+        "commit " + std::to_string(3 + parentHashes.size()) + '\n';
+    result += "author " + author + '\n';
+    result += "timestamp " + std::to_string(timestamp) + '\n';
+    result += "tree " + treeHash + '\n';
+    for (auto &h : parentHashes)
+      result += "parent " + h + '\n';
+    return result;
+  }
+
+  std::string getTreeHash() const { return treeHash; }
+  std::string getMessage() const { return message; }
 };

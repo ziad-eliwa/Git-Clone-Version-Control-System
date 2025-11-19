@@ -31,6 +31,7 @@ public:
 
   void push_back(T item);
   T pop_back();
+  T pop_front();
 
   using Iterator = T *;
   Iterator begin() const;
@@ -41,9 +42,11 @@ public:
   T &front();
   const T &front() const;
 
+  void erase(Iterator begin, Iterator end);
+
   Vector<T> &operator=(const Vector<T> &other);
 
-  void sort(Iterator begin, Iterator end);
+  void sort();
   template <class U>
   friend std::ostream &operator<<(std::ostream &os, Vector<U> &v);
 };
@@ -115,6 +118,13 @@ template <class T> T Vector<T>::pop_back() {
     throw std::underflow_error("pop_back: cannot pop from empty Vector");
   return array[--size_];
 }
+template <class T> T Vector<T>::pop_front() {
+  if (empty())
+    throw std::underflow_error("pop_front: cannot pop from empty Vector");
+  T ret = array[0];
+  erase(begin(), begin() + 1);
+  return ret;
+}
 
 template <class T> T &Vector<T>::get(int index) {
   if (!(0 <= index && index < size_))
@@ -131,11 +141,21 @@ template <class T> T &Vector<T>::operator[](int index) const {
 template <class T> void Vector<T>::set(int index, T item) { get(index) = item; }
 template <class T> T *Vector<T>::begin() const { return array; }
 template <class T> T *Vector<T>::end() const { return array + size_; }
-template <class T> void Vector<T>::sort(Iterator begin, Iterator end) {
-  if (begin == end)
+
+template <class T> void Vector<T>::erase(Iterator b, Iterator e) {
+  auto it = b;
+  for (auto jt = e; jt != end(); jt++) {
+    *it = *jt;
+    it++;
+  }
+  size_ -= e - b;
+}
+
+template <class T> void Vector<T>::sort() {
+  if (empty())
     return;
-  for (Iterator i = begin; i != end; ++i) {
-    for (Iterator j = i + 1; j != end; ++j) {
+  for (Iterator i = begin(); i != end(); ++i) {
+    for (Iterator j = i + 1; j != end(); ++j) {
       if (*j < *i) {
         std::swap(*i, *j);
       }

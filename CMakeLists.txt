@@ -17,6 +17,8 @@ add_library(DCVS_lib
   src/argparser.cpp
   src/argparser.h
   src/Index.h
+  src/helpers.cpp
+  src/helpers.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
 

@@ -9,8 +9,7 @@ private:
 public:
   ObjectStore() = default;
   ObjectStore(std::string storePath);
-  blob storeBlob(std::string filePath);
-  void store(std::string filePath, tree &t);
-  tree retrieveTree(std::string &treeHash);
-  blob retrieveBlob(std::string &name, std::string &blobHash);
+  void store(GitObject *obj);
+  GitObject *store(std::string filePath);
+  GitObject *retrieve(std::string hash);
 };

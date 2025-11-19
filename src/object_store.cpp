@@ -1,5 +1,6 @@
 #include "object_store.h"
 #include "gitobjects.h"
+#include "helpers.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
@@ -15,75 +16,84 @@ ObjectStore::ObjectStore(std::string sp) {
   }
 };
 
-blob ObjectStore::storeBlob(std::string filePath) {
-  std::ifstream file(filePath, std::ios::binary);
-  std::string content((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
-
-  blob b(filePath, content);
-  std::ofstream object(storePath + "/" + b.getHash(),
-                       std::ios::binary);
-  object << b.getContent();
-  object.close();
+void ObjectStore::store(GitObject *obj) {
+  if (Commit *c = dynamic_cast<Commit *>(obj)) {
+    std::cout << "HERE" << std::endl; // TODO: recurse
+  }
+  if (Tree *t = dynamic_cast<Tree *>(obj)) {
+    for (auto &entry : t->getEntries()) {
+      GitObject *obj = retrieve(entry.getHash());
+      store(obj);
+    }
+  }
+  std::ofstream object(storePath + "/" + obj->getHash(), std::ios::binary);
+  object << obj->serialize();
   object.flush();
-  return b;
+  object.close();
 };
 
-void ObjectStore::store(std::string filepath, tree &t) {
-  if (!std::filesystem::is_directory(filepath)) {
-    blob b = storeBlob(filepath);
-    t.addBlob(b);
+GitObject *ObjectStore::store(std::string path) {
+  GitObject *ret;
+  if (!std::filesystem::is_directory(path)) {
+    std::ifstream file(path, std::ios::binary);
+    std::string content((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+
+    Blob *b = new Blob(content);
+    store(b);
+    ret = b;
   } else {
-    for (const auto &entry : std::filesystem::directory_iterator(filepath)) {
-      if (entry.is_directory()) {
-        tree subtree;
-        store(entry.path(), subtree);
-        t.addSubTree(entry.path(), subtree);
-      } else {
-        blob b = storeBlob(entry.path());
-        t.addBlob(b);
+    Tree *t = new Tree();
+    for (const auto &entry : std::filesystem::directory_iterator(path)) {
+      GitObject *obj = store(entry.path());
+      if (Tree *st = dynamic_cast<Tree *>(obj)) {
+        t->addSubTree(entry.path(), *st);
+      } else if (Blob *b = dynamic_cast<Blob *>(obj)) {
+        t->addBlob(entry.path(), *b);
       }
     }
+    store(t);
+    ret = t;
   }
-  std::ofstream object(storePath + "/" + t.getHash(),
-                       std::ios::binary);
-  object << t.serialize();
-  object.close();
+  std::ofstream object(storePath + "/" + ret->getHash(), std::ios::binary);
+  object << ret->serialize();
   object.flush();
+  object.close();
+  return ret;
 }
 
-blob ObjectStore::retrieveBlob(std::string &name, std::string &blobHash) {
-  std::string filePath(storePath + "/" + blobHash);
+GitObject *ObjectStore::retrieve(std::string hash) {
+  std::string filePath(storePath + "/" + hash);
   std::ifstream file(filePath, std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
 
-  return blob(name, content);
-}
-
-tree ObjectStore::retrieveTree(std::string &treeHash) {
-  std::string filePath(storePath + "/" + treeHash);
-  std::ifstream file(filePath, std::ios::binary);
-  std::string content((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
-  Vector<std::string> result;
-  tree t;
-  int start = 0;
-  for (int i = 0; i < content.length(); ++i) {
-    if (content[i] == '\0' || i == content.length() - 1) {
-      result.push_back(content.substr(start, i - start));
-      start = i + 1;
-    }
+  Vector<std::string> lines = split(content, '\n');
+  if (lines.empty()) {
+    // TODO: handle hash not existing.
+    return nullptr;
   }
+  Vector<std::string> header = split(lines[0], ' ');
+  if (header[0] == "blob") {
+    int ln = content.find('\n'); // skip first line
+    Blob *b = new Blob(content.substr(ln + 1));
+    return b;
+  } else if (header[0] == "tree") {
+    int entries = std::stoi(header[1]);
 
-  for (int i = 1; i < result.size(); i += 2) {
-    if (std::filesystem::is_directory(result[i])) {
-      tree subtree = retrieveTree(result[i + 1]);
-      t.addSubTree(result[i], subtree);
-    } else {
-      blob blb = retrieveBlob(result[i], result[i + 1]);
-      t.addBlob(blb);
+    Tree *t = new Tree();
+    for (int i = 1; i <= entries; i++) {
+      Vector<std::string> entry = split(lines[i], ' ');
+      GitObject *obj = retrieve(entry[2]);
+      if (Tree *st = dynamic_cast<Tree *>(obj)) {
+        t->addSubTree(entry[1], *st);
+      } else if (Blob *b = dynamic_cast<Blob *>(obj)) {
+        t->addBlob(entry[1], *b);
+      }
     }
+    return t;
+  } else if (header[0] == "commit") {
+    // TODO:
   }
-  return t;
+  return nullptr;
 }
