@@ -12,8 +12,8 @@
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
 // Networking: push pull, fetch
-const std::string STORE_PATH = ".jit/objects/";
-const std::string REPO_ROOT = ".jit";
+const std::string STORE_PATH = "./.jit/objects/";
+const std::string REPO_ROOT = "./.jit";
 
 // namespace fs = std::filesystem;
 // // Helper function used to stage files
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
-        IndexStore index(STORE_PATH, store);
+        IndexStore index(REPO_ROOT, store);
         index.add(filePath);
         index.save();
         std::cout << "Added successfuly\n";
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
   parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
         // Not functioning yet.
-        IndexStore index(STORE_PATH, store);
+        IndexStore index(REPO_ROOT, store);
 
         // Needed: build tree from indexes and store the tree in .jit/objects/
         tree CommitTree = index.convertToTree();

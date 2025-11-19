@@ -21,6 +21,10 @@ public:
     if (std::filesystem::is_directory(path)) {
       for (const auto &entry : std::filesystem::directory_iterator(path)) {
         if (std::filesystem::is_directory(entry.path())) {
+            if (entry.path().filename() == ".jit") {
+                continue;
+            }
+            std::cout << entry.path() << "\n";
             add(entry.path());
         } else {
           blob b = objectStore.storeBlob(entry.path());
