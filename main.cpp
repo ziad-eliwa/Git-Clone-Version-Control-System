@@ -2,6 +2,7 @@
 #include "gitobjects.h"
 #include "object_store.h"
 #include <iostream>
+#include "Index.h"
 
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
