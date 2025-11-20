@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
         if (current != "")
           newCommit->addParentHash(current);
         store.store(newCommit);
-        store.storeHead(newCommit->getHash(),HEAD_PATH);
+        store.storeHead(newCommit->getHash(), HEAD_PATH);
       })
       .add_argument(commitMessage, "Commit Message",
                     "Must be between double quotations.");
@@ -85,12 +85,12 @@ int main(int argc, char *argv[]) {
   parser.add_command("log", "Display the log of the commits")
       .set_callback([&]() {
         std::string LastCommit = store.retrieveHead(HEAD_PATH);
-        if (LastCommit != "") 
-        {
+        if (LastCommit != "") {
           std::string result = store.retrieveLog(LastCommit);
           std::cout << result;
         } else {
-          std::cout << "Jit repository is empty now. \n No commits are found yet.\n";
+          std::cout
+              << "Jit repository is empty now. \n No commits are found yet.\n";
         }
       });
 
@@ -113,6 +113,7 @@ int main(int argc, char *argv[]) {
         if (Commit *c = dynamic_cast<Commit *>(obj)) {
           store.reconstruct(c->getTreeHash(), "./");
           index.readTree(".", c->getTreeHash());
+          store.storeHead(commitHash, HEAD_PATH);
           index.save();
         }
       })
@@ -128,13 +129,6 @@ int main(int argc, char *argv[]) {
         // Create Branches if not exists
       })
       .add_argument(branchName, "", "");
-
-  std::string checkHash;
-  parser.add_command("checkout", "")
-      .set_callback([&]() {
-        // Switch to branch or a commit
-      })
-      .add_argument(checkHash, "", "Branch or Commit");
 
   parser.add_command("merge", "")
       .set_callback([&]() {
