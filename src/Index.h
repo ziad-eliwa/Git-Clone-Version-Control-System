@@ -99,14 +99,6 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    for (auto &[p, es] : dirMap) {
-      std::cout << p << " : ";
-      for (auto &e : es) {
-        std::cout << "(" << e.first << ", " << e.second << ") ";
-      }
-      std::cout << std::endl;
-    }
-
     std::string path = ".";
     return _convertToTree(dirMap, path);
   }

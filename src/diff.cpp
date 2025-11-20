@@ -1,12 +1,12 @@
+#include "vector.h"
 #include <iostream>
-#include <vector>
 #include <algorithm>
-std::vector<std::string> diff(const std::vector<std::string> &file1, const std::vector<std::string> &file2)
+Vector<std::string> diff(const Vector<std::string> &file1, const Vector<std::string> &file2)
 {
     int n = file1.size(), m = file2.size();
     int max = n + m;
-    std::vector<int> del(2 * max + 1, 0);
-    std::vector<std::vector<int>> trace;
+    Vector<int> del(2 * max + 1, 0);
+    Vector<Vector<int>> trace;
     int x, y;
     int found = -1;
     for (int d = 0; d <= max; d++)
@@ -31,7 +31,7 @@ std::vector<std::string> diff(const std::vector<std::string> &file1, const std::
         if (found != -1)
             break;
     }
-    std::vector<std::string> lines;
+    Vector<std::string> lines;
     int prev_x, prev_y, k = found, prev_k;
     for (int d = trace.size() - 1; d > 0; d--)
     {
@@ -70,9 +70,9 @@ std::vector<std::string> diff(const std::vector<std::string> &file1, const std::
 }
 int main()
 {
-    std::vector<std::string> a = {"Text1", "Text2", "Text3", "Text1", "Text2", "Text2", "Text1"};
-    std::vector<std::string> b = {"Text3", "Text2", "Text1", "Text2", "Text1", "Text3"};
-    std::vector<std::string> c = diff(a, b);
+    Vector<std::string> a = {"Text1", "Text2", "Text3", "Text1", "Text2", "Text2", "Text1"};
+    Vector<std::string> b = {"Text3", "Text2", "Text1", "Text2", "Text1", "Text3"};
+    Vector<std::string> c = diff(a, b);
     for (int i = 0; i < c.size(); i++)
     {
         std::cout << c[i] << std::endl;

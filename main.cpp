@@ -72,10 +72,11 @@ int main(int argc, char *argv[]) {
           head >> current;
         }
         IndexStore index(REPO_ROOT, store);
-        Tree CommitTree = index.convertToTree();
-        store.store(&CommitTree);
+        Tree commitTree = index.convertToTree();
+        store.store(&commitTree);
+
         Commit *newCommit =
-            new Commit(commitMessage, "pharaok", CommitTree.getHash());
+            new Commit(commitMessage, "pharaok", commitTree.getHash());
         std::cout << newCommit->serialize() << std::endl;
         if (current != "")
           newCommit->addParentHash(current);
@@ -113,12 +114,12 @@ int main(int argc, char *argv[]) {
   std::string commitHash;
   parser.add_command("reset", "")
       .set_callback([&]() {
-          // Reset the working directory to the desired commit.
+        // Reset the working directory to the desired commit.
       })
       .add_argument(commitHash, "", "");
 
   parser.add_command("branch", "").set_callback([&]() {
-      // Print Branches and Working Branch
+    // Print Branches and Working Branch
   });
 
   std::string branchName;
@@ -137,7 +138,7 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("merge", "")
       .set_callback([&]() {
-          // Merge two branches if possible
+        // Merge two branches if possible
       })
       .add_argument(branchName, "", "");
 
