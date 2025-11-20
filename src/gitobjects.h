@@ -83,7 +83,7 @@ class Commit : public GitObject {
 private:
   std::string treeHash;
   std::string author;
-  time_t timestamp;
+  std::string timestamp;
   Vector<std::string> parentHashes;
   std::string message;
 
@@ -91,7 +91,11 @@ public:
   Commit() = default;
   Commit(std::string msg, std::string author, std::string treeHash)
       : message(msg), treeHash(treeHash), author(author) {
-    timestamp = std::time(nullptr);
+    time_t stamp = std::time(nullptr);
+    std::tm *tm_ptr = std::localtime(&stamp);
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d,%H:%M:%S", tm_ptr);
+    timestamp = buf;
     hash = computeHash(serialize());
   }
 
@@ -99,7 +103,7 @@ public:
     std::string result =
         "commit " + std::to_string(4 + parentHashes.size()) + '\n';
     result += "author " + author + '\n';
-    result += "timestamp " + std::to_string(timestamp) + '\n';
+    result += "timestamp " + timestamp + '\n';
     result += "message " + message + '\n';
     result += "tree " + treeHash + '\n';
     for (auto &h : parentHashes)
@@ -113,13 +117,12 @@ public:
 
   std::string getTreeHash() const { return treeHash; }
   std::string getMessage() const { return message; }
+  std::string getAuthor() const { return author; }
+  std::string getTimeStamp() const { return timestamp; }
+  Vector<std::string> getParentHashes() { return parentHashes; }
 
   void setAuthor(std::string auth) { author = auth; }
-  void setTimeStamp(std::string tmstmp) {
-    std::tm tm{};
-    strptime(tmstmp.c_str(), "%Y-%m-%d %H:%M:%S", &tm);
-    timestamp = mktime(&tm);
-  }
-  void addMessage(std::string msg) { message = msg;}
-  void addTreeHash(std::string TrHash) {treeHash = TrHash;}
+  void setTimeStamp(std::string tmstmp) { timestamp = tmstmp; }
+  void addMessage(std::string msg) { message = msg; }
+  void addTreeHash(std::string TrHash) { treeHash = TrHash; }
 };

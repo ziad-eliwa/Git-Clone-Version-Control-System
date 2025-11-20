@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 ObjectStore::ObjectStore(std::string sp) {
@@ -104,7 +105,9 @@ GitObject *ObjectStore::retrieve(std::string hash) {
       } else if(entry[0] == "timestamp") {
         cmt->setTimeStamp(entry[1]);
       } else if(entry[0] == "message") {
-        cmt->addMessage(entry[1]);
+        std::string msg;
+        for(int i = 1; i < entry.size(); i++) msg += entry[i] +" ";
+        cmt->addMessage(msg);
       } else if(entry[0] == "tree") {
         cmt->addTreeHash(entry[1]);
       } else if (entry[0] == "parent") {
@@ -117,5 +120,15 @@ GitObject *ObjectStore::retrieve(std::string hash) {
 }
 
 std::string ObjectStore::retrieveLog(std::string lastHash) {
-
+  GitObject * obj = retrieve(lastHash);
+  if(Commit *cmt = dynamic_cast<Commit *>(obj)){
+    std::string result = lastHash + " " + cmt->getAuthor() + " " + cmt->getMessage() + cmt->getTimeStamp() + "\n";
+    Vector<std::string> parents = cmt->getParentHashes(); 
+    for (int i = 0; i < parents.size(); ++i) {
+      result += retrieveLog(parents[i]);
+    }
+    return result;
+  } else {
+    throw std::runtime_error("Not a commit hash");
+  }
 }

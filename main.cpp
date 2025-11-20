@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
         std::ifstream last(HEAD_PATH);
         std::string LastCommit;
         last >> LastCommit;
-        //store.retrieveLog(LastCommit);
+        std::string result = store.retrieveLog(LastCommit);
+        std::cout << result;
       });
 
   // Jit repository checking
