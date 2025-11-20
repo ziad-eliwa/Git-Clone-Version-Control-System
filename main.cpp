@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
       .add_argument(commitMessage, "Commit Message",
                     "Must be between double quotations.");
 
-  parser.add_command("log", "Display the log of the commands")
+  parser.add_command("log", "Display the log of the commits")
       .set_callback([&]() {
         std::ifstream last(HEAD_PATH);
         std::string LastCommit;
@@ -97,6 +97,49 @@ int main(int argc, char *argv[]) {
         std::string result = store.retrieveLog(LastCommit);
         std::cout << result;
       });
+
+  // Missing commands.
+  parser.add_command("diff", "")
+      .set_callback([&]() {
+
+      })
+      .add_argument(filePath, "", "");
+
+  parser.add_command("status", "").set_callback([&]() {
+    // Tracked Files
+    // Untracked Files
+  });
+
+  std::string commitHash;
+  parser.add_command("reset", "")
+      .set_callback([&]() {
+          // Reset the working directory to the desired commit.
+      })
+      .add_argument(commitHash, "", "");
+
+  parser.add_command("branch", "").set_callback([&]() {
+      // Print Branches and Working Branch
+  });
+
+  std::string branchName;
+  parser.add_command("branch", "")
+      .set_callback([&]() {
+        // Create Branches if not exists
+      })
+      .add_argument(branchName, "", "");
+
+  std::string checkHash;
+  parser.add_command("checkout", "")
+      .set_callback([&]() {
+        // Switch to branch or a commit
+      })
+      .add_argument(checkHash, "", "Branch or Commit");
+
+  parser.add_command("merge", "")
+      .set_callback([&]() {
+          // Merge two branches if possible
+      })
+      .add_argument(branchName, "", "");
 
   // Jit repository checking
   if (!std::filesystem::exists(REPO_ROOT)) {
