@@ -88,23 +88,38 @@ private:
   std::string message;
 
 public:
+  Commit() = default;
   Commit(std::string msg, std::string author, std::string treeHash)
       : message(msg), treeHash(treeHash), author(author) {
-    timestamp = time_t(nullptr);
+    timestamp = std::time(nullptr);
     hash = computeHash(serialize());
   }
 
   std::string serialize() override {
     std::string result =
-        "commit " + std::to_string(3 + parentHashes.size()) + '\n';
+        "commit " + std::to_string(4 + parentHashes.size()) + '\n';
     result += "author " + author + '\n';
     result += "timestamp " + std::to_string(timestamp) + '\n';
+    result += "message " + message + '\n';
     result += "tree " + treeHash + '\n';
     for (auto &h : parentHashes)
       result += "parent " + h + '\n';
     return result;
   }
 
+  void addParentHash(std::string &TreeHash) {
+    parentHashes.push_back(TreeHash);
+  }
+
   std::string getTreeHash() const { return treeHash; }
   std::string getMessage() const { return message; }
+
+  void setAuthor(std::string auth) { author = auth; }
+  void setTimeStamp(std::string tmstmp) {
+    std::tm tm{};
+    strptime(tmstmp.c_str(), "%Y-%m-%d %H:%M:%S", &tm);
+    timestamp = mktime(&tm);
+  }
+  void addMessage(std::string msg) { message = msg;}
+  void addTreeHash(std::string TrHash) {treeHash = TrHash;}
 };

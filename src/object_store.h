@@ -12,4 +12,5 @@ public:
   void store(GitObject *obj);
   GitObject *store(std::string filePath);
   GitObject *retrieve(std::string hash);
+  std::string retrieveLog(std::string lastHash);
 };

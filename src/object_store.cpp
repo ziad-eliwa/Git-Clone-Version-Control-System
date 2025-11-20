@@ -1,10 +1,11 @@
-#include "object_store.h"
 #include "gitobjects.h"
 #include "helpers.h"
+#include "object_store.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <string>
 
 ObjectStore::ObjectStore(std::string sp) {
@@ -93,7 +94,28 @@ GitObject *ObjectStore::retrieve(std::string hash) {
     }
     return t;
   } else if (header[0] == "commit") {
-    // TODO:
+    int entries = std::stoi(header[1]);
+    Commit* cmt = new Commit();
+
+    for (int i = 1; i <= entries; i++) {
+      Vector<std::string> entry = split(lines[i], ' ');
+      if(entry[0] == "author") {
+          cmt->setAuthor(entry[1]);        
+      } else if(entry[0] == "timestamp") {
+        cmt->setTimeStamp(entry[1]);
+      } else if(entry[0] == "message") {
+        cmt->addMessage(entry[1]);
+      } else if(entry[0] == "tree") {
+        cmt->addTreeHash(entry[1]);
+      } else if (entry[0] == "parent") {
+        cmt->addParentHash(entry[1]);
+      }
+    }
+    return cmt;
   }
   return nullptr;
+}
+
+std::string ObjectStore::retrieveLog(std::string lastHash) {
+
 }

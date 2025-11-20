@@ -3,8 +3,10 @@
 #include "gitobjects.h"
 #include "object_store.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <pwd.h>
+#include <string>
 #include <unistd.h>
 
 // We store the instructions we have here
@@ -13,27 +15,8 @@
 // Networking: push pull, fetch
 const std::string REPO_ROOT = "./.jit/";
 const std::string STORE_PATH = REPO_ROOT + "objects/";
+const std::string HEAD_PATH = REPO_ROOT + "HEAD";
 
-// namespace fs = std::filesystem;
-// // Helper function used to stage files
-// void stage_file(std::string path, Index& index) {
-//     if (!fs::exists(path)) return;
-//     index.add(path);
-
-//     std::cout << "Added " << path << std::endl;
-// }
-// // helper function used to stage directories
-// void stage_directory(std::string dirPath, Index& index) {
-//     if (!fs::exists(dirPath)) return;
-
-//     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
-//         std::string path = entry.path().string();
-//         if (path.find(REPO_ROOT) != std::string::npos) continue;
-//         if (!entry.is_directory()) {
-//             stage_file(path, index);
-//         }
-//     }
-// }
 int main(int argc, char *argv[]) {
   ObjectStore store;
 
@@ -41,22 +24,7 @@ int main(int argc, char *argv[]) {
   parser.add_command("help", "Show this help message").set_callback([&]() {
     std::cout << parser.help_message() << std::endl;
   });
-  // std::string fileToAdd;
-  // parser.add_command("add", "Add file contents to the index")
-  //     .add_argument(fileToAdd, "Path", "File to add")
-  //     .set_callback([&]() {
-  //       Index index(REPO_ROOT, store);
 
-  //       if (fs::is_directory(fileToAdd)) {
-  //         stage_directory(fileToAdd, index);
-  //       } else if (fs::exists(fileToAdd)) {
-  //         stage_file(fileToAdd, index);
-  //       } else {
-  //         std::cerr << "fatal: pathspec '" << fileToAdd
-  //                   << "' did not match any files\n";
-  //         return;
-  //       }
-  //     });
   // serializing and storing the tree
   // This command is only for testing
   std::string filePath;
@@ -98,23 +66,36 @@ int main(int argc, char *argv[]) {
   std::string commitMessage;
   parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
-        // Not functioning yet.
+        std::ifstream head(HEAD_PATH);
+        std::string current;
+        if (head) {
+          head >> current;
+        }
         IndexStore index(REPO_ROOT, store);
-
-        // Needed: build tree from indexes and store the tree in .jit/objects/
         Tree CommitTree = index.convertToTree();
         store.store(&CommitTree);
-
-        // uid_t uid = getuid();
-        // passwd *pw = getpwuid(uid);
         Commit *newCommit =
             new Commit(commitMessage, "pharaok", CommitTree.getHash());
         std::cout << newCommit->serialize() << std::endl;
+        if (current != "")
+          newCommit->addParentHash(current);
         store.store(newCommit);
-        // index.clearIndex(); // index remains the same
+
+        std::ofstream headWrite(HEAD_PATH);
+        headWrite << newCommit->getHash();
+        head.close();
+        headWrite.close();
       })
       .add_argument(commitMessage, "Commit Message",
                     "Must be between double quotations.");
+
+  parser.add_command("log", "Display the log of the commands")
+      .set_callback([&]() {
+        std::ifstream last(HEAD_PATH);
+        std::string LastCommit;
+        last >> LastCommit;
+        //store.retrieveLog(LastCommit);
+      });
 
   // Jit repository checking
   if (!std::filesystem::exists(REPO_ROOT)) {
