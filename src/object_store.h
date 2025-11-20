@@ -14,5 +14,6 @@ public:
   GitObject *retrieve(std::string hash);
   std::string retrieveLog(std::string lastHash);
   std::string retrieveHead(std::string headPath);
-  void storeHead(std::string Hash,std::string headPath);
+  void storeHead(std::string Hash, std::string headPath);
+  void reconstruct(std::string hash, std::string path);
 };

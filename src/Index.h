@@ -25,12 +25,12 @@ public:
     if (p.filename() == ".jit")
       return;
 
-    if (std::filesystem::is_directory(path)) {
-      for (const auto &entry : std::filesystem::directory_iterator(path))
+    if (std::filesystem::is_directory(p)) {
+      for (const auto &entry : std::filesystem::directory_iterator(p))
         add(entry.path());
     } else {
-      GitObject *obj = objectStore.store(path);
-      indexEntries.set(path, obj->getHash());
+      GitObject *obj = objectStore.store(p.relative_path());
+      indexEntries.set(p.relative_path(), obj->getHash());
     }
   }
   void save() {
@@ -50,11 +50,11 @@ public:
     std::ifstream in(indexPath);
     std::string path, hash;
     while (in >> path >> hash)
-      indexEntries.set(path, hash);
+      indexEntries.set(std::filesystem::relative(path), hash);
   }
 
-  Tree _convertToTree(HashMap<std::string, Vector<IndexEntry>> &dirMap,
-                      std::string &path) {
+  Tree _writeTree(HashMap<std::string, Vector<IndexEntry>> &dirMap,
+                  std::string &path) {
     Tree ret;
 
     for (auto &entry : dirMap[path]) {
@@ -74,7 +74,7 @@ public:
                                   ? remainingPath
                                   : remainingPath.substr(0, firstSlash);
         if (firstSlash == std::string::npos) { // base case
-          Tree subTree = _convertToTree(dirMap, p);
+          Tree subTree = _writeTree(dirMap, p);
           objectStore.store(&subTree);
           ret.addEntry(TreeEntry{"tree", dirName, subTree.getHash()});
         }
@@ -83,7 +83,7 @@ public:
 
     return ret;
   }
-  Tree convertToTree() {
+  Tree writeTree() {
     Vector<IndexEntry> entries;
     for (auto &[path, hash] : indexEntries)
       entries.push_back({path, hash});
@@ -99,8 +99,17 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    std::string path = ".";
-    return _convertToTree(dirMap, path);
+    std::string path = "";
+    return _writeTree(dirMap, path);
+  }
+  void readTree(std::string path, std::string hash) {
+    GitObject *obj = objectStore.retrieve(hash);
+    if (Blob *b = dynamic_cast<Blob *>(obj)) {
+      indexEntries.set(std::filesystem::relative(path), hash);
+    } else if (Tree *t = dynamic_cast<Tree *>(obj)) {
+      for (auto &e : t->getEntries())
+        readTree(path + '/' + e.name, e.getHash());
+    }
   }
 
   void clearIndex() {

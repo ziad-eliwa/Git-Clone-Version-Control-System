@@ -1,6 +1,6 @@
+#include "object_store.h"
 #include "gitobjects.h"
 #include "helpers.h"
-#include "object_store.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
@@ -139,4 +139,26 @@ void ObjectStore::storeHead(std::string Hash, std::string headPath) {
   std::ofstream headWrite(headPath);
   headWrite << Hash;
   headWrite.close();
+}
+
+void ObjectStore::reconstruct(std::string hash, std::string path) {
+  GitObject *obj = retrieve(hash);
+  if (Tree *tree = dynamic_cast<Tree *>(obj)) {
+    if (!std::filesystem::exists(path)) {
+      if (!std::filesystem::create_directories(path))
+        throw std::runtime_error("failed to create directory");
+    }
+
+    for (auto &entry : tree->getEntries()) {
+      GitObject *entryObj = retrieve(entry.hash);
+      if (Blob *b = dynamic_cast<Blob *>(entryObj)) {
+        std::ofstream of(path + '/' + entry.name);
+        of << b->getContent();
+        of.flush();
+        of.close();
+      } else if (Tree *t = dynamic_cast<Tree *>(entryObj)) {
+        reconstruct(t->getHash(), path + '/' + entry.name);
+      }
+    }
+  }
 }

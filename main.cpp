@@ -19,6 +19,7 @@ const std::string HEAD_PATH = REPO_ROOT + "HEAD";
 
 int main(int argc, char *argv[]) {
   ObjectStore store;
+  IndexStore index(REPO_ROOT, store);
 
   ArgParser parser(argv[0], "Jit is a version control system.");
   parser.add_command("help", "Show this help message").set_callback([&]() {
@@ -56,7 +57,6 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
-        IndexStore index(REPO_ROOT, store);
         index.add(filePath);
         index.save();
         std::cout << "Added successfuly\n";
@@ -69,9 +69,8 @@ int main(int argc, char *argv[]) {
         std::string current = store.retrieveHead(HEAD_PATH);
 
         IndexStore index(REPO_ROOT, store);
-        Tree commitTree = index.convertToTree();
+        Tree commitTree = index.writeTree();
         store.store(&commitTree);
-
         Commit *newCommit =
             new Commit(commitMessage, "pharaok", commitTree.getHash());
         std::cout << newCommit->serialize() << std::endl;
@@ -108,9 +107,14 @@ int main(int argc, char *argv[]) {
   });
 
   std::string commitHash;
-  parser.add_command("reset", "")
+  parser.add_command("checkout", "")
       .set_callback([&]() {
-        // Reset the working directory to the desired commit.
+        GitObject *obj = store.retrieve(commitHash);
+        if (Commit *c = dynamic_cast<Commit *>(obj)) {
+          store.reconstruct(c->getTreeHash(), "./");
+          index.readTree(".", c->getTreeHash());
+          index.save();
+        }
       })
       .add_argument(commitHash, "", "");
 
