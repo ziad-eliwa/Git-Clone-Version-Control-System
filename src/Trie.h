@@ -1,9 +1,5 @@
-//
-// Created by Ali Ahmed  on 26/10/2025.
-//
-
-#ifndef DISTRIBUTED_VERSION_CONTROL_SYSTEM_TRIE_H
-#define DISTRIBUTED_VERSION_CONTROL_SYSTEM_TRIE_H
+#ifndef TRIE_H
+#define TRIE_H
 #include <string>
 using namespace std;
 
@@ -23,4 +19,4 @@ class Trie {
 };
 
 
-#endif //DISTRIBUTED_VERSION_CONTROL_SYSTEM_TRIE_H
+#endif //TRIE_H

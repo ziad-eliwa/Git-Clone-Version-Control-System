@@ -1,6 +1,6 @@
-#include "object_store.h"
 #include "gitobjects.h"
 #include "helpers.h"
+#include "object_store.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
@@ -123,4 +123,20 @@ std::string ObjectStore::retrieveLog(std::string lastHash) {
   } else {
     throw std::runtime_error("Not a commit hash");
   }
+}
+
+std::string ObjectStore::retrieveHead(std::string headPath) {
+  std::string current;
+  std::ifstream head(headPath);
+  if (head) {
+    head >> current;
+  }
+  head.close();
+  return current;
+}
+
+void ObjectStore::storeHead(std::string Hash, std::string headPath) {
+  std::ofstream headWrite(headPath);
+  headWrite << Hash;
+  headWrite.close();
 }

@@ -66,11 +66,8 @@ int main(int argc, char *argv[]) {
   std::string commitMessage;
   parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
-        std::ifstream head(HEAD_PATH);
-        std::string current;
-        if (head) {
-          head >> current;
-        }
+        std::string current = store.retrieveHead(HEAD_PATH);
+
         IndexStore index(REPO_ROOT, store);
         Tree commitTree = index.convertToTree();
         store.store(&commitTree);
@@ -81,22 +78,21 @@ int main(int argc, char *argv[]) {
         if (current != "")
           newCommit->addParentHash(current);
         store.store(newCommit);
-
-        std::ofstream headWrite(HEAD_PATH);
-        headWrite << newCommit->getHash();
-        head.close();
-        headWrite.close();
+        store.storeHead(newCommit->getHash(),HEAD_PATH);
       })
       .add_argument(commitMessage, "Commit Message",
                     "Must be between double quotations.");
 
   parser.add_command("log", "Display the log of the commits")
       .set_callback([&]() {
-        std::ifstream last(HEAD_PATH);
-        std::string LastCommit;
-        last >> LastCommit;
-        std::string result = store.retrieveLog(LastCommit);
-        std::cout << result;
+        std::string LastCommit = store.retrieveHead(HEAD_PATH);
+        if (LastCommit != "") 
+        {
+          std::string result = store.retrieveLog(LastCommit);
+          std::cout << result;
+        } else {
+          std::cout << "Jit repository is empty now. \n No commits are found yet.\n";
+        }
       });
 
   // Missing commands.
