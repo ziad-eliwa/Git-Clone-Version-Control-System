@@ -1,5 +1,6 @@
 #include "helpers.h"
 #include "hashmap.h"
+#include <fstream>
 #include <string>
 
 Vector<std::string> split(std::string str, char delim) {
@@ -26,4 +27,11 @@ std::string standardPath(std::filesystem::path path) {
   if (!(p.rfind("./", 0) == 0))
     p = "./" + p;
   return p;
+}
+
+std::string readFile(std::filesystem::path path) {
+  std::ifstream file(path, std::ios::binary);
+  std::string content((std::istreambuf_iterator<char>(file)),
+                      std::istreambuf_iterator<char>());
+  return content;
 }

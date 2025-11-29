@@ -4,7 +4,6 @@
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <stdexcept>
 #include <string>
 
@@ -27,9 +26,7 @@ void ObjectStore::store(GitObject *obj) {
 GitObject *ObjectStore::store(std::string path) {
   GitObject *ret;
   if (!std::filesystem::is_directory(path)) {
-    std::ifstream file(path, std::ios::binary);
-    std::string content((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+    std::string content = readFile(path);
 
     Blob *b = new Blob(content);
     store(b);
@@ -56,9 +53,7 @@ GitObject *ObjectStore::store(std::string path) {
 
 GitObject *ObjectStore::retrieve(std::string hash) {
   std::string filePath(storePath + "/" + hash);
-  std::ifstream file(filePath, std::ios::binary);
-  std::string content((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
+  std::string content = readFile(filePath);
 
   Vector<std::string> lines = split(content, '\n');
   if (lines.empty()) {
@@ -126,19 +121,12 @@ std::string ObjectStore::retrieveLog(std::string lastHash) {
 }
 
 std::string ObjectStore::retrieveHead(std::string headPath) {
-  std::string current;
-  std::ifstream head(headPath);
-  if (head) {
-    head >> current;
-  }
-  head.close();
-  return current;
+  return readFile(headPath);
 }
 
 void ObjectStore::storeHead(std::string Hash, std::string headPath) {
   std::ofstream headWrite(headPath);
   headWrite << Hash;
-  headWrite.close();
 }
 
 void ObjectStore::reconstruct(std::string hash, std::string path) {
@@ -154,8 +142,6 @@ void ObjectStore::reconstruct(std::string hash, std::string path) {
       if (Blob *b = dynamic_cast<Blob *>(entryObj)) {
         std::ofstream of(path + '/' + entry.name);
         of << b->getContent();
-        of.flush();
-        of.close();
       } else if (Tree *t = dynamic_cast<Tree *>(entryObj)) {
         reconstruct(t->getHash(), path + '/' + entry.name);
       }

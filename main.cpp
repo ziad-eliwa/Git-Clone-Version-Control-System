@@ -1,5 +1,7 @@
 #include "argparser.h"
 #include "gitobjects.h"
+#include "hashmap.h"
+#include "helpers.h"
 #include "index.h"
 #include "object_store.h"
 #include <filesystem>
@@ -13,6 +15,8 @@
 const std::string REPO_ROOT = "./.jit";
 const std::string STORE_PATH = REPO_ROOT + "/objects";
 const std::string HEAD_PATH = REPO_ROOT + "/HEAD";
+
+enum class Status { Clean, NewFile, Modified, Deleted };
 
 int main(int argc, char *argv[]) {
   ObjectStore store;
@@ -102,8 +106,10 @@ int main(int argc, char *argv[]) {
   //     .add_argument(filePath, "", "");
 
   parser.add_command("status", "").set_callback([&]() {
-    // Tracked Files
-    Vector<std::string> entries;
+    // TODO: improve array search
+    HashMap<std::string, Status> status;
+
+    Vector<std::string> untracked;
     for (auto it = std::filesystem::recursive_directory_iterator(".");
          it != std::filesystem::end(it); it++) {
       const auto &entry = *it;
@@ -111,13 +117,61 @@ int main(int argc, char *argv[]) {
         it.disable_recursion_pending();
         continue;
       }
+
       if (std::filesystem::is_regular_file(entry))
-        entries.push_back(entry.path());
+        untracked.push_back(standardPath(entry));
     }
-    for (auto &s : entries)
-      std::cout << s << " ";
-    std::cout << std::endl;
-    // Untracked Files
+
+    for (auto &[path, hash] : index.getEntries()) {
+      bool found = false;
+      for (auto &p : untracked) {
+        if (p == path) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        Blob untrackedBlob = Blob(readFile(path));
+        std::string untrackedHash = untrackedBlob.getHash();
+        if (untrackedHash != hash)
+          status[path] = Status::Modified;
+      } else {
+        status[path] = Status::Deleted;
+      }
+    }
+
+    for (auto &path : untracked) {
+      bool found = false;
+      for (auto &[p, _] : index.getEntries()) {
+        if (p == path) {
+          found = true;
+          break;
+        }
+      }
+      if (!found)
+        status[path] = Status::NewFile;
+    }
+
+    bool clean = true;
+    for (auto [path, status] : status) {
+      switch (status) {
+      case Status::NewFile:
+        std::cout << "new file: " << path << std::endl;
+        clean = false;
+        break;
+      case Status::Modified:
+        std::cout << "modified: " << path << std::endl;
+        clean = false;
+        break;
+      case Status::Deleted:
+        std::cout << "deleted: " << path << std::endl;
+        clean = false;
+        break;
+      }
+    }
+    if (clean) {
+      std::cout << "Working tree clean." << std::endl;
+    }
   });
 
   std::string commitHash;

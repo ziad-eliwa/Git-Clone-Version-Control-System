@@ -125,6 +125,5 @@ public:
     f.close();
   }
 
-  // HashMap<std::string, std::string> &getStagedFiles() { return fileContents;
-  // }
+  HashMap<std::string, std::string> getEntries() { return indexEntries; }
 };
