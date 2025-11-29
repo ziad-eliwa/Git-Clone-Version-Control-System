@@ -1,5 +1,6 @@
 #include "helpers.h"
 #include "hashmap.h"
+#include <string>
 
 Vector<std::string> split(std::string str, char delim) {
   Vector<std::string> ret;
@@ -16,4 +17,13 @@ Vector<std::string> split(std::string str, char delim) {
 }
 std::string computeHash(std::string content) {
   return to_hex(Murmur3_32(content));
+}
+
+std::string standardPath(std::filesystem::path path) {
+  if (path.empty())
+    return ".";
+  std::string p = path.generic_string();
+  if (!(p.rfind("./", 0) == 0))
+    p = "./" + p;
+  return p;
 }

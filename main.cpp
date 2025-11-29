@@ -1,21 +1,18 @@
-#include "Index.h"
 #include "argparser.h"
 #include "gitobjects.h"
+#include "index.h"
 #include "object_store.h"
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <pwd.h>
 #include <string>
-#include <unistd.h>
 
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
 // Networking: push pull, fetch
-const std::string REPO_ROOT = "./.jit/";
-const std::string STORE_PATH = REPO_ROOT + "objects/";
-const std::string HEAD_PATH = REPO_ROOT + "HEAD";
+const std::string REPO_ROOT = "./.jit";
+const std::string STORE_PATH = REPO_ROOT + "/objects";
+const std::string HEAD_PATH = REPO_ROOT + "/HEAD";
 
 int main(int argc, char *argv[]) {
   ObjectStore store;
@@ -28,17 +25,18 @@ int main(int argc, char *argv[]) {
 
   // serializing and storing the tree
   // This command is only for testing
-  std::string filePath;
-  parser.add_command("store", "Insert file or directory into the object store")
-      .set_callback([&]() {
-        std::cout << filePath << std::endl;
-        store.store(filePath);
-      })
-      .add_argument(filePath, "file_path", "");
+  // std::string filePath;
+  // parser.add_command("store", "Insert file or directory into the object
+  // store")
+  //     .set_callback([&]() {
+  //       std::cout << filePath << std::endl;
+  //       store.store(filePath);
+  //     })
+  //     .add_argument(filePath, "file_path", "");
 
   // deserializing the tree
   // This command is only for testing
-  std::string treeHash;
+  // std::string treeHash;
   // parser.add_command("read", "Read hash")
   //     .set_callback([&]() {
   //       Tree retrievedTree = store.(treeHash);
@@ -55,13 +53,13 @@ int main(int argc, char *argv[]) {
     }
   });
 
+  std::string addPath;
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
-        index.add(filePath);
+        index.add(addPath);
         index.save();
-        std::cout << "Added successfuly\n";
       })
-      .add_argument(filePath, "File Path", "");
+      .add_argument(addPath, "File Path", "");
 
   std::string commitMessage;
   parser.add_command("commit", "Add file to the staging area")
@@ -71,9 +69,11 @@ int main(int argc, char *argv[]) {
         IndexStore index(REPO_ROOT, store);
         Tree commitTree = index.writeTree();
         store.store(&commitTree);
+        std::cout << commitTree.serialize() << std::endl;
+
         Commit *newCommit =
             new Commit(commitMessage, "pharaok", commitTree.getHash());
-        std::cout << newCommit->serialize() << std::endl;
+
         if (current != "")
           newCommit->addParentHash(current);
         store.store(newCommit);
@@ -95,14 +95,28 @@ int main(int argc, char *argv[]) {
       });
 
   // Missing commands.
-  parser.add_command("diff", "")
-      .set_callback([&]() {
-
-      })
-      .add_argument(filePath, "", "");
+  // parser.add_command("diff", "")
+  //     .set_callback([&]() {
+  //
+  //     })
+  //     .add_argument(filePath, "", "");
 
   parser.add_command("status", "").set_callback([&]() {
     // Tracked Files
+    Vector<std::string> entries;
+    for (auto it = std::filesystem::recursive_directory_iterator(".");
+         it != std::filesystem::end(it); it++) {
+      const auto &entry = *it;
+      if (entry.is_directory() && entry.path() == REPO_ROOT) {
+        it.disable_recursion_pending();
+        continue;
+      }
+      if (std::filesystem::is_regular_file(entry))
+        entries.push_back(entry.path());
+    }
+    for (auto &s : entries)
+      std::cout << s << " ";
+    std::cout << std::endl;
     // Untracked Files
   });
 
@@ -119,9 +133,9 @@ int main(int argc, char *argv[]) {
       })
       .add_argument(commitHash, "", "");
 
-  parser.add_command("branch", "").set_callback([&]() {
-    // Print Branches and Working Branch
-  });
+  // parser.add_command("branch", "").set_callback([&]() {
+  //   // Print Branches and Working Branch
+  // });
 
   std::string branchName;
   parser.add_command("branch", "")

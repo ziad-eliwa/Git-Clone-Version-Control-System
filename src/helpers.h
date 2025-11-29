@@ -1,5 +1,6 @@
 #pragma once
 #include "vector.h"
+#include <filesystem>
 #include <string>
 
 template <class T, class U> class Pair {
@@ -15,3 +16,5 @@ public:
 Vector<std::string> split(std::string str, char delim);
 
 std::string computeHash(std::string content);
+
+std::string standardPath(std::filesystem::path path);

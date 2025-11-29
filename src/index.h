@@ -1,3 +1,4 @@
+#pragma once
 #include "gitobjects.h"
 #include "hashmap.h"
 #include "helpers.h"
@@ -27,7 +28,7 @@ public:
 
     if (std::filesystem::is_directory(p)) {
       for (const auto &entry : std::filesystem::directory_iterator(p))
-        add(entry.path());
+        add(standardPath(entry));
     } else {
       GitObject *obj = objectStore.store(p.relative_path());
       indexEntries.set(p.relative_path(), obj->getHash());
@@ -50,7 +51,7 @@ public:
     std::ifstream in(indexPath);
     std::string path, hash;
     while (in >> path >> hash)
-      indexEntries.set(std::filesystem::relative(path), hash);
+      indexEntries.set(standardPath(path), hash);
   }
 
   Tree _writeTree(HashMap<std::string, Vector<IndexEntry>> &dirMap,
@@ -99,7 +100,14 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    std::string path = "";
+    for (auto &[a, b] : dirMap) {
+      std::cout << a << ":";
+      for (auto &c : b)
+        std::cout << "(" << c.first << " " << c.second << ") ";
+      std::cout << std::endl;
+    }
+
+    std::string path = ".";
     return _writeTree(dirMap, path);
   }
   void readTree(std::string path, std::string hash) {

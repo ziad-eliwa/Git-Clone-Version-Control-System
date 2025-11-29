@@ -68,13 +68,3 @@ Vector<std::string> diff(const Vector<std::string> &file1, const Vector<std::str
     std::reverse(lines.begin(), lines.end());
     return lines;
 }
-int main()
-{
-    Vector<std::string> a = {"Text1", "Text2", "Text3", "Text1", "Text2", "Text2", "Text1"};
-    Vector<std::string> b = {"Text3", "Text2", "Text1", "Text2", "Text1", "Text3"};
-    Vector<std::string> c = diff(a, b);
-    for (int i = 0; i < c.size(); i++)
-    {
-        std::cout << c[i] << std::endl;
-    }
-}
