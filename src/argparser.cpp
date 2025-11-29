@@ -1,4 +1,5 @@
 #include "argparser.h"
+#include "helpers.h"
 #include "vector.h"
 #include <stdexcept>
 
@@ -8,12 +9,19 @@ template <class T>
 Option<T>::Option(T &data, std::string name, std::string description,
                   bool required)
     : IOption(name, description, required), data(data) {}
+bool IOption::matchName(std::string arg) {
+  Vector<std::string> parts = split(name, ',');
+  for (auto &p : parts)
+    if (p == arg)
+      return true;
+  return false;
+}
 
 // instatiate string and bool options
 template <> int Option<std::string>::parse(int argc, char *argv[]) {
   if (argc < 1)
     throw std::runtime_error("not enough arguments");
-  if (argv[0] != name)
+  if (!matchName(argv[0]))
     return 0;
   if (argc < 2)
     throw std::runtime_error("not enough arguments");
@@ -23,7 +31,7 @@ template <> int Option<std::string>::parse(int argc, char *argv[]) {
 template <> int Flag::parse(int argc, char *argv[]) {
   if (argc < 1)
     throw std::runtime_error("not enough arguments");
-  if (argv[0] != name)
+  if (!matchName(argv[0]))
     return 0;
   data = true;
   return 1;

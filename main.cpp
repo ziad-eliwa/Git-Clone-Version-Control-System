@@ -79,8 +79,8 @@ int main(int argc, char *argv[]) {
         store.store(newCommit);
         store.storeHead(newCommit->getHash(), HEAD_PATH);
       })
-      .add_argument(commitMessage, "Commit Message",
-                    "Must be between double quotations.");
+      .add_option(commitMessage, "-m,--message",
+                  "Must be between double quotations.");
 
   parser.add_command("log", "Display the log of the commits")
       .set_callback([&]() {

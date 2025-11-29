@@ -9,6 +9,7 @@ public:
   std::string description;
   bool required;
 
+  bool matchName(std::string arg);
   virtual ~IOption() = default;
   IOption(std::string name, std::string description, bool required = false);
   virtual int parse(int argc, char *argv[]) = 0;
