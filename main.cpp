@@ -1,4 +1,5 @@
 #include "argparser.h"
+#include "deque.h"
 #include "gitobjects.h"
 #include "hashmap.h"
 #include "helpers.h"
@@ -6,7 +7,6 @@
 #include "objectstore.h"
 #include "refs.h"
 #include "vector.h"
-#include <deque>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
         }
 
         // fast-forward merge
-        std::deque<Commit *> dq;
+        deque<Commit *> dq;
         dq.push_back(otherHead);
         while (!dq.empty()) {
           Commit *cur = dq.front();
