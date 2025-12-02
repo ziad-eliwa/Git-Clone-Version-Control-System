@@ -34,14 +34,15 @@ std::filesystem::path repoRoot() {
                            "initialize a new jit repository.)");
 };
 
-std::string pathString(std::filesystem::path path) {
-  std::filesystem::path root = repoRoot() / "..";
+std::string pathString(std::filesystem::path path, std::filesystem::path root) {
+  if (root.empty())
+    root = repoRoot().parent_path();
 
   if (path.empty())
     return ".";
   std::string p = std::filesystem::relative(path, root).generic_string();
-  if (!(p.rfind("./", 0) == 0))
-    p = "./" + p;
+  if ((p.rfind("./", 0) == 0))
+    p = p.substr(2);
   return p;
 }
 

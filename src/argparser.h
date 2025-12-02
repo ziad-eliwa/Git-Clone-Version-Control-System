@@ -11,7 +11,7 @@ public:
 
   bool matchName(std::string arg);
   virtual ~IOption() = default;
-  IOption(std::string name, std::string description, bool required = false);
+  IOption(std::string name, std::string description, bool required);
   virtual int parse(int argc, char *argv[]) = 0;
 };
 
@@ -30,18 +30,20 @@ class IArgument {
 public:
   std::string name;
   std::string description;
+  bool required;
 
   virtual ~IArgument() = default;
-  IArgument(std::string name, std::string description);
-  virtual void parse(int argc, char *argv[]) = 0;
+  IArgument(std::string name, std::string description, bool required);
+  virtual int parse(int argc, char *argv[]) = 0;
 };
 template <class T> class Argument : public IArgument {
 private:
   T &data;
 
 public:
-  Argument(T &data, std::string name, std::string description);
-  void parse(int argc, char *argv[]) override;
+  Argument(T &data, std::string name, std::string description,
+           bool required = true);
+  int parse(int argc, char *argv[]) override;
 };
 
 class ArgParser {
@@ -61,7 +63,8 @@ public:
 
   ArgParser &add_command(std::string name, std::string description);
   template <class T>
-  ArgParser &add_argument(T &data, std::string name, std::string description);
+  ArgParser &add_argument(T &data, std::string name, std::string description,
+                          bool required = true);
   template <class T>
   ArgParser &add_option(T &data, std::string name, std::string description,
                         bool required = false);

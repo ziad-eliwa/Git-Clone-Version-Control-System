@@ -98,7 +98,7 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    std::string path = ".";
+    std::string path = "";
     return _writeTree(dirMap, path);
   }
   void readTree(std::string path, std::string hash) {

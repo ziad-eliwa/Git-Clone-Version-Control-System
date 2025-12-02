@@ -1,8 +1,10 @@
 #include "refs.h"
 #include "helpers.h"
+#include "vector.h"
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
 
 Refs::Refs(std::filesystem::path r, std::filesystem::path h)
     : refsPath(r), headPath(h) {
@@ -44,7 +46,13 @@ std::string Refs::resolve(std::string ref) {
   return ref;
 }
 
-std::string Refs::head() { return readFile(headPath); }
+bool Refs::isHeadBranch() { return readFile(headPath).rfind("ref ", 0) == 0; }
+std::string Refs::getHead() {
+  std::string h = readFile(headPath);
+  if (h.rfind("ref ", 0) == 0)
+    return h.substr(4);
+  return h;
+}
 void Refs::updateHead(std::string target, bool r) {
   r &= isRef(target);
 
@@ -56,9 +64,19 @@ void Refs::updateHead(std::string target, bool r) {
 void Refs::updateRef(std::string ref, std::string target) {
   if (target == "HEAD")
     target = resolve(target);
+
   std::ofstream r(refsPath / ref);
   if (std::filesystem::exists(refsPath / target))
     r << "ref " << target;
   else
     r << target;
+}
+
+Vector<std::string> Refs::getRefs() {
+  Vector<std::string> refs;
+  for (auto &e : std::filesystem::recursive_directory_iterator(refsPath)) {
+    if (e.is_regular_file())
+      refs.push_back(pathString(e, refsPath));
+  }
+  return refs;
 }

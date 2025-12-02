@@ -1,5 +1,6 @@
 #pragma once
 #include "gitobjects.h"
+#include <filesystem>
 #include <string>
 
 class ObjectStore {
@@ -9,7 +10,7 @@ private:
 public:
   ObjectStore(std::filesystem::path storePath);
   void store(GitObject *obj);
-  GitObject *store(std::string filePath);
+  GitObject *store(std::filesystem::path path);
   bool exists(std::string hash);
   GitObject *retrieve(std::string hash);
   std::string retrieveLog(std::string lastHash);

@@ -37,16 +37,22 @@ template <> int Flag::parse(int argc, char *argv[]) {
   return 1;
 }
 
-IArgument::IArgument(std::string name, std::string description)
-    : name(name), description(description) {}
+IArgument::IArgument(std::string name, std::string description, bool required)
+    : name(name), description(description), required(required) {}
 template <class T>
-Argument<T>::Argument(T &data, std::string name, std::string description)
-    : IArgument(name, description), data(data) {}
+Argument<T>::Argument(T &data, std::string name, std::string description,
+                      bool required)
+    : IArgument(name, description, required), data(data) {}
 
-template <> void Argument<std::string>::parse(int argc, char *argv[]) {
-  if (argc < 1)
-    throw std::runtime_error("not enough arguments");
+template <> int Argument<std::string>::parse(int argc, char *argv[]) {
+  if (argc < 1) {
+    if (required)
+      throw std::runtime_error("not enough arguments");
+    else
+      return 0;
+  }
   data = argv[0];
+  return 1;
 }
 
 ArgParser::ArgParser()
@@ -63,15 +69,15 @@ ArgParser &ArgParser::add_command(std::string name, std::string description) {
 }
 template <class T>
 ArgParser &ArgParser::add_argument(T &data, std::string name,
-                                   std::string description) {
-  IArgument *argument = new Argument(data, name, description);
+                                   std::string description, bool required) {
+  IArgument *argument = new Argument(data, name, description, required);
   arguments.push_back(argument);
   return *this;
 }
 // instantiate add_argument for strings
 template ArgParser &
 ArgParser::add_argument<std::string>(std::string &data, std::string name,
-                                     std::string description);
+                                     std::string description, bool required);
 
 template <class T>
 ArgParser &ArgParser::add_option(T &data, std::string name,

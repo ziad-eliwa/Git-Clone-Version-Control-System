@@ -19,6 +19,7 @@ std::string computeHash(std::string content);
 
 std::filesystem::path repoRoot();
 
-std::string pathString(std::filesystem::path path);
+std::string pathString(std::filesystem::path path,
+                       std::filesystem::path root = "");
 
 std::string readFile(std::filesystem::path path);

@@ -5,9 +5,11 @@
 #include "index.h"
 #include "objectstore.h"
 #include "refs.h"
+#include "vector.h"
 #include <exception>
 #include <filesystem>
 #include <iostream>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 
@@ -83,8 +85,8 @@ int main(int argc, char *argv[]) {
           newCommit->addParentHash(current);
 
         store.store(newCommit);
-        if (refs.head().rfind("ref ", 0) == 0)
-          refs.updateRef(refs.head().substr(4), newCommit->getHash());
+        if (refs.isHeadBranch())
+          refs.updateRef(refs.getHead(), newCommit->getHash());
       })
       .add_option(commitMessage, "-m,--message",
                   "Must be between double quotations.");
@@ -114,8 +116,9 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("status", "").set_callback([&]() {
     std::filesystem::path repo = repoRoot();
+    std::filesystem::path wd = repo.parent_path();
     ObjectStore store(repo / "objects");
-    IndexStore index(repo, store);
+    IndexStore index(repo / "index", store);
 
     enum class Status { Clean, NewFile, Modified, Deleted };
 
@@ -123,10 +126,10 @@ int main(int argc, char *argv[]) {
     HashMap<std::string, Status> status;
 
     Vector<std::string> untracked;
-    for (auto it = std::filesystem::recursive_directory_iterator(".");
+    for (auto it = std::filesystem::recursive_directory_iterator(wd);
          it != std::filesystem::end(it); it++) {
       const auto &entry = *it;
-      if (entry.is_directory() && entry == repo) {
+      if (entry.path().filename().string().rfind(".jit", 0) == 0) {
         it.disable_recursion_pending();
         continue;
       }
@@ -144,7 +147,7 @@ int main(int argc, char *argv[]) {
         }
       }
       if (found) {
-        Blob untrackedBlob = Blob(readFile(path));
+        Blob untrackedBlob = Blob(readFile(wd / path));
         std::string untrackedHash = untrackedBlob.getHash();
         if (untrackedHash != hash)
           status[path] = Status::Modified;
@@ -188,7 +191,7 @@ int main(int argc, char *argv[]) {
     }
   });
 
-  std::string commitHash;
+  std::string target;
   parser.add_command("checkout", "")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
@@ -196,16 +199,18 @@ int main(int argc, char *argv[]) {
         IndexStore index(repo / "index", store);
         Refs refs(repo / "refs", repo / "HEAD");
 
-        GitObject *obj = store.retrieve(commitHash);
-        if (Commit *c = dynamic_cast<Commit *>(obj)) {
+        std::string hash = refs.isRef(target) ? refs.resolve(target) : target;
+        if (Commit *c = dynamic_cast<Commit *>(store.retrieve(hash))) {
           store.reconstruct(c->getTreeHash(), "./");
           index.readTree(".", c->getTreeHash());
-          // TODO: orphaned commits
-          refs.updateHead(commitHash);
+          refs.updateHead(target);
           index.save();
+        } else {
+          std::cout << "no such branch or commit '" << target << "'"
+                    << std::endl;
         }
       })
-      .add_argument(commitHash, "Commit hash", "");
+      .add_argument(target, "Commit hash", "");
 
   // parser.add_command("branch", "").set_callback([&]() {
   //   // Print Branches and Working Branch
@@ -214,9 +219,17 @@ int main(int argc, char *argv[]) {
   std::string branchName;
   parser.add_command("branch", "")
       .set_callback([&]() {
-        // Create Branches if not exists
+        std::filesystem::path repo = repoRoot();
+        Refs refs(repo / "refs", repo / "HEAD");
+        if (branchName.empty()) {
+          Vector<std::string> branches = refs.getRefs();
+          for (auto &b : branches)
+            std::cout << (b == refs.getHead() ? "+" : " ") << b << std::endl;
+          return;
+        }
+        refs.updateRef(branchName, "HEAD");
       })
-      .add_argument(branchName, "", "");
+      .add_argument(branchName, "", "", false);
 
   parser.add_command("merge", "")
       .set_callback([&]() {

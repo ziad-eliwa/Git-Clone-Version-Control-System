@@ -21,7 +21,7 @@ void ObjectStore::store(GitObject *obj) {
   object.close();
 };
 
-GitObject *ObjectStore::store(std::string path) {
+GitObject *ObjectStore::store(std::filesystem::path path) {
   GitObject *ret;
   if (!std::filesystem::is_directory(path)) {
     std::string content = readFile(path);
