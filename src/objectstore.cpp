@@ -7,17 +7,15 @@
 #include <stdexcept>
 #include <string>
 
-ObjectStore::ObjectStore(std::string sp) {
-  std::filesystem::path store(sp);
-  storePath = store.string();
-  if (!std::filesystem::exists(store)) {
-    if (!std::filesystem::create_directories(store))
+ObjectStore::ObjectStore(std::filesystem::path sp) : storePath(sp) {
+  if (!std::filesystem::exists(storePath)) {
+    if (!std::filesystem::create_directories(storePath))
       throw std::runtime_error("failed to create directory");
   }
 };
 
 void ObjectStore::store(GitObject *obj) {
-  std::ofstream object(storePath + "/" + obj->getHash(), std::ios::binary);
+  std::ofstream object(storePath / obj->getHash(), std::ios::binary);
   object << obj->serialize();
   object.flush();
   object.close();
@@ -44,22 +42,27 @@ GitObject *ObjectStore::store(std::string path) {
     store(t);
     ret = t;
   }
-  std::ofstream object(storePath + "/" + ret->getHash(), std::ios::binary);
+  std::ofstream object(storePath / ret->getHash(), std::ios::binary);
   object << ret->serialize();
   object.flush();
   object.close();
   return ret;
 }
 
+bool ObjectStore::exists(std::string hash) {
+  return std::filesystem::exists(storePath / hash);
+}
 GitObject *ObjectStore::retrieve(std::string hash) {
-  std::string filePath(storePath + "/" + hash);
+  if (!exists(hash))
+    return nullptr;
+
+  std::string filePath(storePath / hash);
   std::string content = readFile(filePath);
 
   Vector<std::string> lines = split(content, '\n');
-  if (lines.empty()) {
-    // TODO: handle hash not existing.
+  if (lines.empty())
     return nullptr;
-  }
+
   Vector<std::string> header = split(lines[0], ' ');
   if (header[0] == "blob") {
     int ln = content.find('\n'); // skip first line
@@ -105,22 +108,21 @@ GitObject *ObjectStore::retrieve(std::string hash) {
   return nullptr;
 }
 
-// std::string ObjectStore::retrieveLog(std::string lastHash) {
-//   GitObject *obj = retrieve(lastHash);
-//   if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
-//     std::string result = lastHash + " " + cmt->getAuthor() + " " +
-//                          cmt->getMessage() + cmt->getTimeStamp() + "\n";
-//     Vector<std::string> parents = cmt->getParentHashes();
-//     for (int i = 0; i < parents.size(); ++i) {
-//       result += retrieveLog(parents[i]);
-//     }
-//     return result;
-//   } else {
-//     throw std::runtime_error("Not a commit hash");
-//   }
-// }
+std::string ObjectStore::retrieveLog(std::string commit) {
+  GitObject *obj = retrieve(commit);
+  if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
+    std::string result = commit + " " + cmt->getAuthor() + " " +
+                         cmt->getMessage() + " (" + cmt->getTimeStamp() + ")\n";
+    for (auto &parent : cmt->getParentHashes())
+      result += retrieveLog(parent);
 
-void ObjectStore::reconstruct(std::string hash, std::string path) {
+    return result;
+  } else {
+    throw std::runtime_error("Not a commit hash");
+  }
+}
+
+void ObjectStore::reconstruct(std::string hash, std::filesystem::path path) {
   GitObject *obj = retrieve(hash);
   if (Tree *tree = dynamic_cast<Tree *>(obj)) {
     if (!std::filesystem::exists(path)) {
@@ -131,10 +133,10 @@ void ObjectStore::reconstruct(std::string hash, std::string path) {
     for (auto &entry : tree->getEntries()) {
       GitObject *entryObj = retrieve(entry.hash);
       if (Blob *b = dynamic_cast<Blob *>(entryObj)) {
-        std::ofstream of(path + '/' + entry.name);
+        std::ofstream of(path / entry.name);
         of << b->getContent();
       } else if (Tree *t = dynamic_cast<Tree *>(entryObj)) {
-        reconstruct(t->getHash(), path + '/' + entry.name);
+        reconstruct(t->getHash(), path / entry.name);
       }
     }
   }

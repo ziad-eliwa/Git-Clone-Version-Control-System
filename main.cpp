@@ -26,7 +26,7 @@ std::filesystem::path repoRoot() {
   }
   if (std::filesystem::exists(d / ".jit"))
     return d / ".jit";
-  throw std::runtime_error("no jit repository found.\n  (use \"jit init\" to "
+  throw std::runtime_error("no jit repository found.\n  (use 'jit init' to "
                            "initialize a new jit repository.)");
 };
 
@@ -89,31 +89,36 @@ int main(int argc, char *argv[]) {
 
         Tree commitTree = index.writeTree();
         store.store(&commitTree);
-        std::cout << commitTree.serialize() << std::endl;
 
         Commit *newCommit =
             new Commit(commitMessage, "pharaok", commitTree.getHash());
 
+        std::cout << current << std::endl;
         if (current != "")
           newCommit->addParentHash(current);
+
         store.store(newCommit);
-        refs.updateRef(refs.head(), newCommit->getHash());
+        if (refs.head().rfind("ref ", 0) == 0)
+          refs.updateRef(refs.head().substr(4), newCommit->getHash());
       })
       .add_option(commitMessage, "-m,--message",
                   "Must be between double quotations.");
 
-  // parser.add_command("log", "Display the log of the commits")
-  //     .set_callback([&]() {
-  //       std::string LastCommit = store.retrieveHead(HEAD_PATH);
-  //       if (LastCommit != "") {
-  //         std::string result = store.retrieveLog(LastCommit);
-  //         std::cout << result;
-  //       } else {
-  //         std::cout
-  //             << "Jit repository is empty now. \n No commits are found
-  //             yet.\n";
-  //       }
-  //     });
+  parser.add_command("log", "Display the log of the commits")
+      .set_callback([&]() {
+        std::filesystem::path repo = repoRoot();
+        ObjectStore store(repo / "objects");
+        Refs refs(repo / "refs", repo / "HEAD");
+
+        std::string lastCommit = refs.resolve("HEAD");
+        if (lastCommit == "") {
+          std::cout << "your current branch does not have any commits yet."
+                    << std::endl;
+          return;
+        }
+
+        std::cout << store.retrieveLog(lastCommit);
+      });
 
   // Missing commands.
   // parser.add_command("diff", "")

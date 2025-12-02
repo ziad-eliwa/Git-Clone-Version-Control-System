@@ -2,7 +2,7 @@
 #include "helpers.h"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <string>
 
 Refs::Refs(std::filesystem::path r, std::filesystem::path h)
     : refsPath(r), headPath(h) {
@@ -13,37 +13,49 @@ Refs::Refs(std::filesystem::path r, std::filesystem::path h)
   }
 }
 
+bool Refs::isRef(std::string s) {
+  if (s.length() != 8)
+    return true;
+
+  for (char c : s) {
+    if (std::string("0123456789abcdef").find(c) == std::string::npos)
+      return true;
+  }
+
+  // HACK: reduce false positives
+  if (std::filesystem::exists(refsPath / "../objects" / s))
+    return false;
+  return true;
+}
+
 std::string Refs::resolve(std::string ref) {
+  if (ref.rfind("ref ", 0) == 0)
+    return resolve(ref.substr(4));
+
   if (ref.rfind("HEAD", 0) == 0) {
     // TODO: ^ @{n} ~
-    std::string content = readFile(headPath);
-    if (content.rfind("ref ", 0) == 0)
-      return content.substr(4);
-    return content;
-  } else if (std::filesystem::exists(refsPath / ref)) {
-    std::string content = readFile(refsPath / ref);
-    if (content.rfind("ref ", 0) == 0)
-      return content.substr(4);
-    return content;
+    return resolve(readFile(headPath));
+  } else if (isRef(ref)) {
+    if (std::filesystem::exists(refsPath / ref))
+      return resolve(readFile(refsPath / ref));
+    return "";
   }
 
   return ref;
 }
 
-std::string Refs::head() {
-  std::string head = readFile(headPath);
-  if (head.rfind("ref ", 0) == 0)
-    return head.substr(4);
-  return head;
-}
-void Refs::updateHead(std::string target) {
-  std::ofstream r(headPath);
-  r << "ref " << target;
+std::string Refs::head() { return readFile(headPath); }
+void Refs::updateHead(std::string target, bool r) {
+  r &= isRef(target);
+
+  std::ofstream h(headPath);
+  if (r)
+    h << "ref ";
+  h << target;
 }
 void Refs::updateRef(std::string ref, std::string target) {
   if (target == "HEAD")
     target = resolve(target);
-  std::cout << (refsPath / ref).string() << std::endl;
   std::ofstream r(refsPath / ref);
   if (std::filesystem::exists(refsPath / target))
     r << "ref " << target;

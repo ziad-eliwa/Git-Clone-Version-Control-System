@@ -100,13 +100,6 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    for (auto &[a, b] : dirMap) {
-      std::cout << a << ":";
-      for (auto &c : b)
-        std::cout << "(" << c.first << " " << c.second << ") ";
-      std::cout << std::endl;
-    }
-
     std::string path = ".";
     return _writeTree(dirMap, path);
   }
