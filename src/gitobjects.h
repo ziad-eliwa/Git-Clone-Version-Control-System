@@ -67,11 +67,13 @@ public:
   void addBlob(std::string blobName, Blob &b) {
     TreeEntry te("blob", blobName, b.getHash());
     addEntry(te);
+    hash = computeHash(serialize());
   }
 
   void addSubTree(std::string treeName, Tree &t) {
     TreeEntry te("tree", treeName, t.getHash());
     addEntry(te);
+    hash = computeHash(serialize());
   }
 
   const Vector<TreeEntry> &getEntries() const { return entries; }
@@ -109,18 +111,31 @@ public:
     return result;
   }
 
-  void addParentHash(std::string &TreeHash) {
-    parentHashes.push_back(TreeHash);
-  }
-
   std::string getTreeHash() const { return treeHash; }
   std::string getMessage() const { return message; }
   std::string getAuthor() const { return author; }
   std::string getTimeStamp() const { return timestamp; }
   Vector<std::string> getParentHashes() { return parentHashes; }
 
-  void setAuthor(std::string auth) { author = auth; }
-  void setTimeStamp(std::string tmstmp) { timestamp = tmstmp; }
-  void addMessage(std::string msg) { message = msg; }
-  void addTreeHash(std::string TrHash) { treeHash = TrHash; }
+  void addParentHash(std::string &TreeHash) {
+    parentHashes.push_back(TreeHash);
+    hash = computeHash(serialize());
+  }
+
+  void setAuthor(std::string auth) {
+    author = auth;
+    hash = computeHash(serialize());
+  }
+  void setTimeStamp(std::string tmstmp) {
+    timestamp = tmstmp;
+    hash = computeHash(serialize());
+  }
+  void addMessage(std::string msg) {
+    message = msg;
+    hash = computeHash(serialize());
+  }
+  void addTreeHash(std::string TrHash) {
+    treeHash = TrHash;
+    hash = computeHash(serialize());
+  }
 };

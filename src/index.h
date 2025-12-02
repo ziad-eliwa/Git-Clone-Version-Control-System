@@ -6,6 +6,7 @@
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
+#include <ostream>
 
 using IndexEntry = Pair<std::string, std::string>; // path hash
 
@@ -85,7 +86,7 @@ public:
   Tree writeTree() {
     Vector<IndexEntry> entries;
     for (auto &[path, hash] : indexEntries)
-      entries.push_back({path, hash});
+      entries.push_back({"./" + path, hash});
     entries.sort();
 
     HashMap<std::string, Vector<IndexEntry>> dirMap;
@@ -98,16 +99,16 @@ public:
       dirMap[dirName].push_back(entry);
     }
 
-    std::string path = "";
+    std::string path = ".";
     return _writeTree(dirMap, path);
   }
-  void readTree(std::string path, std::string hash) {
+  void readTree(std::filesystem::path path, std::string hash) {
     GitObject *obj = objectStore.retrieve(hash);
     if (Blob *b = dynamic_cast<Blob *>(obj)) {
-      indexEntries.set(std::filesystem::relative(path), hash);
+      indexEntries.set(pathString(path), hash);
     } else if (Tree *t = dynamic_cast<Tree *>(obj)) {
       for (auto &e : t->getEntries())
-        readTree(path + '/' + e.name, e.getHash());
+        readTree(path / e.name, e.getHash());
     }
   }
 

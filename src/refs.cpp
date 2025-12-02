@@ -15,7 +15,7 @@ Refs::Refs(std::filesystem::path r, std::filesystem::path h)
   }
 }
 
-bool Refs::isRef(std::string s) {
+bool Refs::isBranch(std::string s) {
   if (s.length() != 8)
     return true;
 
@@ -37,7 +37,7 @@ std::string Refs::resolve(std::string ref) {
   if (ref.rfind("HEAD", 0) == 0) {
     // TODO: ^ @{n} ~
     return resolve(readFile(headPath));
-  } else if (isRef(ref)) {
+  } else if (isBranch(ref)) {
     if (std::filesystem::exists(refsPath / ref))
       return resolve(readFile(refsPath / ref));
     return "";
@@ -54,7 +54,7 @@ std::string Refs::getHead() {
   return h;
 }
 void Refs::updateHead(std::string target, bool r) {
-  r &= isRef(target);
+  r &= isBranch(target);
 
   std::ofstream h(headPath);
   if (r)
@@ -66,10 +66,7 @@ void Refs::updateRef(std::string ref, std::string target) {
     target = resolve(target);
 
   std::ofstream r(refsPath / ref);
-  if (std::filesystem::exists(refsPath / target))
-    r << "ref " << target;
-  else
-    r << target;
+  r << target;
 }
 
 Vector<std::string> Refs::getRefs() {

@@ -7,10 +7,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 add_library(DCVS_lib 
-  src/Trie.cpp
-  src/Trie.h
   src/argparser.cpp
   src/argparser.h
+  src/deque.h
   src/hashmap.cpp
   src/hashmap.h
   src/helpers.cpp

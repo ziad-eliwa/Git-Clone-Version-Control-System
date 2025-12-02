@@ -6,6 +6,7 @@
 #include "objectstore.h"
 #include "refs.h"
 #include "vector.h"
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -195,14 +196,16 @@ int main(int argc, char *argv[]) {
   parser.add_command("checkout", "")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
+        std::filesystem::path wd = repo.parent_path();
         ObjectStore store(repo / "objects");
         IndexStore index(repo / "index", store);
         Refs refs(repo / "refs", repo / "HEAD");
 
-        std::string hash = refs.isRef(target) ? refs.resolve(target) : target;
+        std::string hash =
+            refs.isBranch(target) ? refs.resolve(target) : target;
         if (Commit *c = dynamic_cast<Commit *>(store.retrieve(hash))) {
-          store.reconstruct(c->getTreeHash(), "./");
-          index.readTree(".", c->getTreeHash());
+          store.reconstruct(c->getTreeHash(), wd);
+          index.readTree(wd, c->getTreeHash());
           refs.updateHead(target);
           index.save();
         } else {
@@ -233,7 +236,56 @@ int main(int argc, char *argv[]) {
 
   parser.add_command("merge", "")
       .set_callback([&]() {
-        // Merge two branches if possible
+        std::filesystem::path repo = repoRoot();
+        std::filesystem::path wd = repo.parent_path();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
+        Refs refs(repo / "refs", repo / "HEAD");
+
+        auto resolveCommit = [&](std::string s) {
+          std::string commitHash = refs.resolve(s);
+
+          Commit *commit = nullptr;
+          if (Commit *c = dynamic_cast<Commit *>(store.retrieve(commitHash)))
+            commit = c;
+          return commit;
+        };
+
+        Commit *ourHead = resolveCommit(refs.getHead());
+        Commit *otherHead = resolveCommit(branchName);
+
+        if (ourHead == nullptr) {
+          std::cout << "head is detached" << std::endl;
+          return;
+        }
+
+        if (otherHead == nullptr) {
+          std::cout << "unknown branch '" << branchName << "'" << std::endl;
+          return;
+        }
+
+        // fast-forward merge
+        std::deque<Commit *> dq;
+        dq.push_back(otherHead);
+        while (!dq.empty()) {
+          Commit *cur = dq.front();
+          dq.pop_front();
+          if (cur->getHash() == ourHead->getHash()) {
+            // otherHead->getHash() is different for some reason
+            refs.updateRef(refs.getHead(), refs.resolve(branchName));
+            store.reconstruct(otherHead->getTreeHash(), wd);
+            std::cout << "performed fast-forward merge" << std::endl;
+            return;
+          }
+          for (auto &h : cur->getParentHashes()) {
+            Commit *next = resolveCommit(h);
+
+            if (next != nullptr)
+              dq.push_back(next);
+          }
+        }
+
+        // divergent branches
       })
       .add_argument(branchName, "", "");
 

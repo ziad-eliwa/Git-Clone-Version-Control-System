@@ -12,7 +12,7 @@ public:
   Refs(std::filesystem::path refsPath, std::filesystem::path headPath);
   std::string resolve(std::string ref);
 
-  bool isRef(std::string target);
+  bool isBranch(std::string target);
   std::string getHead();
   bool isHeadBranch();
   void updateHead(std::string target, bool isRef = true);
