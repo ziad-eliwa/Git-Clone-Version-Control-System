@@ -15,20 +15,6 @@
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
 // Networking: push pull, fetch
-const std::filesystem::path REPO_ROOT = "./.jit";
-
-std::filesystem::path repoRoot() {
-  std::filesystem::path d = std::filesystem::current_path();
-  while (d.parent_path() != d) {
-    if (std::filesystem::exists(d / ".jit"))
-      return d / ".jit";
-    d = d.parent_path();
-  }
-  if (std::filesystem::exists(d / ".jit"))
-    return d / ".jit";
-  throw std::runtime_error("no jit repository found.\n  (use 'jit init' to "
-                           "initialize a new jit repository.)");
-};
 
 int main(int argc, char *argv[]) {
   ArgParser parser(argv[0], "Jit Version Control System.");
@@ -61,7 +47,7 @@ int main(int argc, char *argv[]) {
   parser.add_command("init", "Initialize a repository").set_callback([&]() {
     std::filesystem::path repo = "./.jit";
     if (std::filesystem::exists(repo))
-      throw std::runtime_error(".jit repository already exists");
+      throw std::runtime_error(".jit directory already exists");
     Refs refs(repo / "refs", repo / "HEAD");
     refs.updateHead("main");
   });
@@ -93,7 +79,6 @@ int main(int argc, char *argv[]) {
         Commit *newCommit =
             new Commit(commitMessage, "pharaok", commitTree.getHash());
 
-        std::cout << current << std::endl;
         if (current != "")
           newCommit->addParentHash(current);
 
@@ -130,7 +115,7 @@ int main(int argc, char *argv[]) {
   parser.add_command("status", "").set_callback([&]() {
     std::filesystem::path repo = repoRoot();
     ObjectStore store(repo / "objects");
-    IndexStore index(repo / "index", store);
+    IndexStore index(repo, store);
 
     enum class Status { Clean, NewFile, Modified, Deleted };
 
@@ -141,13 +126,13 @@ int main(int argc, char *argv[]) {
     for (auto it = std::filesystem::recursive_directory_iterator(".");
          it != std::filesystem::end(it); it++) {
       const auto &entry = *it;
-      if (entry.is_directory() && entry.path() == REPO_ROOT) {
+      if (entry.is_directory() && entry == repo) {
         it.disable_recursion_pending();
         continue;
       }
 
       if (std::filesystem::is_regular_file(entry))
-        untracked.push_back(standardPath(entry));
+        untracked.push_back(pathString(entry));
     }
 
     for (auto &[path, hash] : index.getEntries()) {

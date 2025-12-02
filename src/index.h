@@ -12,26 +12,24 @@ using IndexEntry = Pair<std::string, std::string>; // path hash
 class IndexStore {
 private:
   ObjectStore &objectStore;
-  std::string indexPath;
+  std::filesystem::path indexPath;
   HashMap<std::string, std::string> indexEntries;
 
 public:
-  IndexStore(std::string filePath, ObjectStore &objectStore)
-      : objectStore(objectStore) {
-    this->indexPath = filePath;
+  IndexStore(std::filesystem::path path, ObjectStore &objectStore)
+      : indexPath(path), objectStore(objectStore) {
     load();
   }
-  void add(std::string path) {
-    auto p = std::filesystem::path(path);
-    if (p.filename() == ".jit")
+  void add(std::filesystem::path path) {
+    if (path.filename() == ".jit")
       return;
 
-    if (std::filesystem::is_directory(p)) {
-      for (const auto &entry : std::filesystem::directory_iterator(p))
-        add(standardPath(entry));
+    if (std::filesystem::is_directory(path)) {
+      for (const auto &entry : std::filesystem::directory_iterator(path))
+        add(pathString(entry));
     } else {
-      GitObject *obj = objectStore.store(p.relative_path());
-      indexEntries.set(p.relative_path(), obj->getHash());
+      GitObject *obj = objectStore.store(pathString(path));
+      indexEntries.set(pathString(path), obj->getHash());
     }
   }
   void save() {
@@ -51,7 +49,7 @@ public:
     std::ifstream in(indexPath);
     std::string path, hash;
     while (in >> path >> hash)
-      indexEntries.set(standardPath(path), hash);
+      indexEntries.set(pathString(path), hash);
   }
 
   Tree _writeTree(HashMap<std::string, Vector<IndexEntry>> &dirMap,

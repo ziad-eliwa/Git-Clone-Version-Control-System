@@ -17,6 +17,8 @@ Vector<std::string> split(std::string str, char delim);
 
 std::string computeHash(std::string content);
 
-std::string standardPath(std::filesystem::path path);
+std::filesystem::path repoRoot();
+
+std::string pathString(std::filesystem::path path);
 
 std::string readFile(std::filesystem::path path);
