@@ -2,7 +2,7 @@
 #include "gitobjects.h"
 #include "hashmap.h"
 #include "helpers.h"
-#include "object_store.h"
+#include "objectstore.h"
 #include "vector.h"
 #include <filesystem>
 #include <fstream>
@@ -18,7 +18,7 @@ private:
 public:
   IndexStore(std::string filePath, ObjectStore &objectStore)
       : objectStore(objectStore) {
-    this->indexPath = (filePath + "/index");
+    this->indexPath = filePath;
     load();
   }
   void add(std::string path) {

@@ -1,4 +1,4 @@
-#include "object_store.h"
+#include "objectstore.h"
 #include "gitobjects.h"
 #include "helpers.h"
 #include "vector.h"
@@ -105,29 +105,20 @@ GitObject *ObjectStore::retrieve(std::string hash) {
   return nullptr;
 }
 
-std::string ObjectStore::retrieveLog(std::string lastHash) {
-  GitObject *obj = retrieve(lastHash);
-  if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
-    std::string result = lastHash + " " + cmt->getAuthor() + " " +
-                         cmt->getMessage() + cmt->getTimeStamp() + "\n";
-    Vector<std::string> parents = cmt->getParentHashes();
-    for (int i = 0; i < parents.size(); ++i) {
-      result += retrieveLog(parents[i]);
-    }
-    return result;
-  } else {
-    throw std::runtime_error("Not a commit hash");
-  }
-}
-
-std::string ObjectStore::retrieveHead(std::string headPath) {
-  return readFile(headPath);
-}
-
-void ObjectStore::storeHead(std::string Hash, std::string headPath) {
-  std::ofstream headWrite(headPath);
-  headWrite << Hash;
-}
+// std::string ObjectStore::retrieveLog(std::string lastHash) {
+//   GitObject *obj = retrieve(lastHash);
+//   if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
+//     std::string result = lastHash + " " + cmt->getAuthor() + " " +
+//                          cmt->getMessage() + cmt->getTimeStamp() + "\n";
+//     Vector<std::string> parents = cmt->getParentHashes();
+//     for (int i = 0; i < parents.size(); ++i) {
+//       result += retrieveLog(parents[i]);
+//     }
+//     return result;
+//   } else {
+//     throw std::runtime_error("Not a commit hash");
+//   }
+// }
 
 void ObjectStore::reconstruct(std::string hash, std::string path) {
   GitObject *obj = retrieve(hash);

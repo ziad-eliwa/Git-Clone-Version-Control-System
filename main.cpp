@@ -3,26 +3,35 @@
 #include "hashmap.h"
 #include "helpers.h"
 #include "index.h"
-#include "object_store.h"
+#include "objectstore.h"
+#include "refs.h"
+#include <exception>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
 // Networking: push pull, fetch
-const std::string REPO_ROOT = "./.jit";
-const std::string STORE_PATH = REPO_ROOT + "/objects";
-const std::string HEAD_PATH = REPO_ROOT + "/HEAD";
+const std::filesystem::path REPO_ROOT = "./.jit";
 
-enum class Status { Clean, NewFile, Modified, Deleted };
+std::filesystem::path repoRoot() {
+  std::filesystem::path d = std::filesystem::current_path();
+  while (d.parent_path() != d) {
+    if (std::filesystem::exists(d / ".jit"))
+      return d / ".jit";
+    d = d.parent_path();
+  }
+  if (std::filesystem::exists(d / ".jit"))
+    return d / ".jit";
+  throw std::runtime_error("no jit repository found.\n  (use \"jit init\" to "
+                           "initialize a new jit repository.)");
+};
 
 int main(int argc, char *argv[]) {
-  ObjectStore store;
-  IndexStore index(REPO_ROOT, store);
-
-  ArgParser parser(argv[0], "Jit is a version control system.");
+  ArgParser parser(argv[0], "Jit Version Control System.");
   parser.add_command("help", "Show this help message").set_callback([&]() {
     std::cout << parser.help_message() << std::endl;
   });
@@ -50,16 +59,19 @@ int main(int argc, char *argv[]) {
 
   // Staging Area and Commits
   parser.add_command("init", "Initialize a repository").set_callback([&]() {
-    std::filesystem::path store(REPO_ROOT);
-    if (!std::filesystem::exists(store)) {
-      if (!std::filesystem::create_directories(store))
-        throw std::runtime_error("failed to create directory");
-    }
+    std::filesystem::path repo = "./.jit";
+    if (std::filesystem::exists(repo))
+      throw std::runtime_error(".jit repository already exists");
+    Refs refs(repo / "refs", repo / "HEAD");
+    refs.updateHead("main");
   });
 
   std::string addPath;
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
+        std::filesystem::path repo = repoRoot();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
         index.add(addPath);
         index.save();
       })
@@ -68,9 +80,13 @@ int main(int argc, char *argv[]) {
   std::string commitMessage;
   parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
-        std::string current = store.retrieveHead(HEAD_PATH);
+        std::filesystem::path repo = repoRoot();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
+        Refs refs(repo / "refs", repo / "HEAD");
 
-        IndexStore index(REPO_ROOT, store);
+        std::string current = refs.resolve("HEAD");
+
         Tree commitTree = index.writeTree();
         store.store(&commitTree);
         std::cout << commitTree.serialize() << std::endl;
@@ -81,22 +97,23 @@ int main(int argc, char *argv[]) {
         if (current != "")
           newCommit->addParentHash(current);
         store.store(newCommit);
-        store.storeHead(newCommit->getHash(), HEAD_PATH);
+        refs.updateRef(refs.head(), newCommit->getHash());
       })
       .add_option(commitMessage, "-m,--message",
                   "Must be between double quotations.");
 
-  parser.add_command("log", "Display the log of the commits")
-      .set_callback([&]() {
-        std::string LastCommit = store.retrieveHead(HEAD_PATH);
-        if (LastCommit != "") {
-          std::string result = store.retrieveLog(LastCommit);
-          std::cout << result;
-        } else {
-          std::cout
-              << "Jit repository is empty now. \n No commits are found yet.\n";
-        }
-      });
+  // parser.add_command("log", "Display the log of the commits")
+  //     .set_callback([&]() {
+  //       std::string LastCommit = store.retrieveHead(HEAD_PATH);
+  //       if (LastCommit != "") {
+  //         std::string result = store.retrieveLog(LastCommit);
+  //         std::cout << result;
+  //       } else {
+  //         std::cout
+  //             << "Jit repository is empty now. \n No commits are found
+  //             yet.\n";
+  //       }
+  //     });
 
   // Missing commands.
   // parser.add_command("diff", "")
@@ -106,6 +123,12 @@ int main(int argc, char *argv[]) {
   //     .add_argument(filePath, "", "");
 
   parser.add_command("status", "").set_callback([&]() {
+    std::filesystem::path repo = repoRoot();
+    ObjectStore store(repo / "objects");
+    IndexStore index(repo / "index", store);
+
+    enum class Status { Clean, NewFile, Modified, Deleted };
+
     // TODO: improve array search
     HashMap<std::string, Status> status;
 
@@ -153,6 +176,7 @@ int main(int argc, char *argv[]) {
     }
 
     bool clean = true;
+    // TODO: sort by status
     for (auto [path, status] : status) {
       switch (status) {
       case Status::NewFile:
@@ -177,15 +201,21 @@ int main(int argc, char *argv[]) {
   std::string commitHash;
   parser.add_command("checkout", "")
       .set_callback([&]() {
+        std::filesystem::path repo = repoRoot();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
+        Refs refs(repo / "refs", repo / "HEAD");
+
         GitObject *obj = store.retrieve(commitHash);
         if (Commit *c = dynamic_cast<Commit *>(obj)) {
           store.reconstruct(c->getTreeHash(), "./");
           index.readTree(".", c->getTreeHash());
-          store.storeHead(commitHash, HEAD_PATH);
+          // TODO: orphaned commits
+          refs.updateHead(commitHash);
           index.save();
         }
       })
-      .add_argument(commitHash, "", "");
+      .add_argument(commitHash, "Commit hash", "");
 
   // parser.add_command("branch", "").set_callback([&]() {
   //   // Print Branches and Working Branch
@@ -204,19 +234,10 @@ int main(int argc, char *argv[]) {
       })
       .add_argument(branchName, "", "");
 
-  // Jit repository checking
-  if (!std::filesystem::exists(REPO_ROOT)) {
-    std::string cmd = argv[1];
-    if (cmd == "init") {
-      store = ObjectStore(STORE_PATH);
-      parser.parse(argc, argv);
-    } else {
-      std::cout << "A jit repository is not initialized yet.\n \t\t Use\t jit "
-                   "init\t to initialize a repo\n";
-    }
-  } else {
-    store = ObjectStore(STORE_PATH);
+  try {
     parser.parse(argc, argv);
+  } catch (const std::exception &e) {
+    std::cout << e.what() << std::endl;
   }
 
   return 0;

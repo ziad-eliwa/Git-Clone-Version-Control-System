@@ -125,7 +125,7 @@ bool ArgParser::parse(int argc, char *argv[]) {
       }
     }
     if (!anyMatched)
-      throw std::runtime_error(std::string("unrecognized option: ") + argv[i]);
+      throw std::runtime_error(std::string("unrecognized command: ") + argv[i]);
   }
   for (int i = 0; i < options.size(); i++) {
     if (options[i]->required && !seen[i])

@@ -7,18 +7,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 add_library(DCVS_lib 
-  src/vector.h
-  src/hashmap.cpp
-  src/hashmap.h
   src/Trie.cpp
   src/Trie.h
-  src/object_store.cpp
-  src/object_store.h
   src/argparser.cpp
   src/argparser.h
-  src/index.h
+  src/hashmap.cpp
+  src/hashmap.h
   src/helpers.cpp
   src/helpers.h
+  src/index.h
+  src/objectstore.cpp
+  src/objectstore.h
+  src/refs.cpp
+  src/refs.h
+  src/vector.h
 )
 target_include_directories(DCVS_lib PUBLIC src) 
 

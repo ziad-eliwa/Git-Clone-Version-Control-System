@@ -1,9 +1,7 @@
 #pragma once
-#include "hashmap.h"
 #include "helpers.h"
 #include "vector.h"
 #include <ctime>
-#include <sstream>
 #include <string>
 
 // Structure resource:
