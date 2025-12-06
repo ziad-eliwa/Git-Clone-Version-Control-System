@@ -13,7 +13,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
-
+#include <diff.cpp>
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
@@ -107,13 +107,31 @@ int main(int argc, char *argv[]) {
 
         std::cout << store.retrieveLog(lastCommit);
       });
+  
+  std::string filePath1, filePath2;
+  parser.add_command("diff", "")
+      .set_callback([&]() {
+          std::ifstream file1(filePath1), file2(filePath2);
+          Vector<std::string> lines1, lines2;
+          std::string line;
 
-  // Missing commands.
-  // parser.add_command("diff", "")
-  //     .set_callback([&]() {
-  //
-  //     })
-  //     .add_argument(filePath, "", "");
+          if (!file1.is_open()) {
+              throw std::runtime_error("Cannot open file: " + filePath1);
+          }
+          while (std::getline(file1, line)) {
+              lines1.push_back(line);
+          }
+          if (!file2.is_open()) {
+              throw std::runtime_error("Cannot open file: " + filePath2);
+          }
+          while (std::getline(file2, line)) {
+              lines2.push_back(line);
+          }
+          Vector<std::string> result = diff(lines1, lines2);
+          for (const auto &line : result) std::cout << line << "\n";
+      })
+      .add_argument(filePath1, "", "")
+      .add_argument(filePath2, "", "");
 
   parser.add_command("status", "").set_callback([&]() {
     std::filesystem::path repo = repoRoot();
