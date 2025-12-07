@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
                 if (retrievedTree[i].type == "blob") {
                   std::string blobHash = Blobs.get(retrievedTree[i].name);
                   results.push_back("---" + retrievedTree[i].name + "---");
-                  if (retrievedTree[i].hash == blobHash) {
+                  if (retrievedTree[i].hash == blobHash || blobHash == "") {
                     results.push_back("No Difference Found");
                   } else {
                     Vector<std::string> file1;
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
                 if (retrievedTree[i].type == "blob") {
                   std::string blobHash = Blobs.get(retrievedTree[i].name);
                   results.push_back("---" + retrievedTree[i].name + "---");
-                  if (retrievedTree[i].hash == blobHash) {
+                  if (retrievedTree[i].hash == blobHash || blobHash == "") {
                     results.push_back("No Difference Found");
                   } else {
                     Vector<std::string> file1;
