@@ -1,5 +1,7 @@
 #pragma once
 #include "gitobjects.h"
+#include "helpers.h"
+#include "vector.h"
 #include <filesystem>
 #include <string>
 
@@ -13,6 +15,7 @@ public:
   GitObject *store(std::filesystem::path path);
   bool exists(std::string hash);
   GitObject *retrieve(std::string hash);
-  std::string retrieveLog(std::string lastHash);
+  void retrieveLog(std::string lastHash,
+                   Vector<Pair<std::string, std::string>> &log);
   void reconstruct(std::string treeHash, std::filesystem::path path);
 };

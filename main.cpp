@@ -8,6 +8,7 @@
 #include "src/objectstore.h"
 #include "src/refs.h"
 #include "src/vector.h"
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -92,7 +93,10 @@ int main(int argc, char *argv[]) {
           return;
         }
 
-        std::cout << store.retrieveLog(lastCommit);
+        Vector<Pair<std::string, std::string>> log;
+        store.retrieveLog(lastCommit, log);
+        for (auto &l : log)
+          std::cout << l.second << std::endl;
       });
 
   // Computes the difference between different commits and files.
@@ -431,7 +435,7 @@ int main(int argc, char *argv[]) {
         }
 
         // fast-forward merge
-        deque<Commit *> dq;
+        Deque<Commit *> dq;
         dq.push_back(otherHead);
         while (!dq.empty()) {
           Commit *cur = dq.front();

@@ -1,7 +1,7 @@
 #pragma once
 #include "vector.h"
 
-template <typename T> class deque {
+template <typename T> class Deque {
 private:
   Vector<T> a;
   int filled, start, end;
@@ -9,7 +9,7 @@ private:
   void grow();
 
 public:
-  deque();
+  Deque();
 
   bool empty();
 
@@ -22,48 +22,53 @@ public:
   T pop_front();
 };
 
-template <typename T> deque<T>::deque() : a(), filled(0), start(0), end(0) {}
+template <typename T> Deque<T>::Deque() : a(), filled(0), start(0), end(0) {}
 
-template <class T> void deque<T>::grow() {
+template <class T> void Deque<T>::grow() {
   Vector<T> newA(2 * a.capacity());
-  for (int i = start; i != end; i++, i %= a.size())
-    newA[i] = a[i];
+  for (int i = 0; i < a.size(); i++)
+    newA[i] = a[(start + i) % a.size()];
   a = newA;
 }
 
-template <class T> bool deque<T>::empty() { return filled == 0; }
-template <class T> T deque<T>::front() { return a[start]; }
-template <class T> T deque<T>::back() { return a[start]; }
+template <class T> bool Deque<T>::empty() { return filled == 0; }
+template <class T> T Deque<T>::front() { return a[start]; }
+template <class T> T Deque<T>::back() {
+  return a[(end - 1 + a.size()) % a.size()];
+}
 
-template <typename T> void deque<T>::push_back(T x) {
+template <typename T> void Deque<T>::push_back(T x) {
   if (filled == a.size())
     grow();
 
-  a[end++] = x;
-  end %= a.size();
+  a[end] = x;
+  end = (end + 1) % a.size();
   filled++;
 }
 
-template <typename T> T deque<T>::pop_back() {
+template <typename T> T Deque<T>::pop_back() {
   if (!empty()) {
     filled--;
-    return a[--end];
+    end = (end - 1 + a.size()) % a.size();
+    return a[end];
   }
 }
 
-template <typename T> void deque<T>::push_front(T x) {
+template <typename T> void Deque<T>::push_front(T x) {
   if (filled == a.size())
     grow();
 
-  a[--start] = x;
-  start %= a.size();
+  start = (start - 1 + a.size()) % a.size();
+  a[start] = x;
   filled++;
 }
 
-template <typename T> T deque<T>::pop_front() {
+template <typename T> T Deque<T>::pop_front() {
   if (!empty()) {
     filled--;
-    return a[start++];
+    T tmp = a[start];
+    start = (start + 1) % a.size();
+    return tmp;
   }
   return nullptr;
 }

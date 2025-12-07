@@ -1,4 +1,5 @@
 #include "objectstore.h"
+#include "deque.h"
 #include "gitobjects.h"
 #include "hashmap.h"
 #include "helpers.h"
@@ -110,17 +111,35 @@ GitObject *ObjectStore::retrieve(std::string hash) {
   return nullptr;
 }
 
-std::string ObjectStore::retrieveLog(std::string commit) {
+void ObjectStore::retrieveLog(std::string commit,
+                              Vector<Pair<std::string, std::string>> &log) {
   GitObject *obj = retrieve(commit);
+  HashMap<std::string, bool> visited;
+  Deque<Commit *> dq;
   if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
-    std::string result = commit + " " + cmt->getAuthor() + " " +
-                         cmt->getMessage() + " (" + cmt->getTimeStamp() + ")\n";
-    for (auto &parent : cmt->getParentHashes())
-      result += retrieveLog(parent);
-
-    return result;
+    dq.push_back(cmt);
   } else {
     throw std::runtime_error("Not a commit hash");
+  }
+
+  while (!dq.empty()) {
+    Commit *cmt = dq.back();
+    dq.pop_back();
+    if (visited[cmt->getHash()])
+      continue;
+    visited[cmt->getHash()] = true;
+
+    std::string result = cmt->getHash() + " " + cmt->getAuthor() + " " +
+                         cmt->getMessage() + " (" + cmt->getTimeStamp() + ")";
+    log.push_back({cmt->getTimeStamp(), result});
+    for (auto &pcommit : cmt->getParentHashes()) {
+      GitObject *obj = retrieve(pcommit);
+      if (Commit *cmt = dynamic_cast<Commit *>(obj)) {
+        dq.push_back(cmt);
+      } else {
+        throw std::runtime_error("Not a commit hash");
+      }
+    }
   }
 }
 
