@@ -14,18 +14,16 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
-// We store the instructions we have here
-// Staging Area: add, commit, log, status, reset
-// Branching: , merge, rebase, diff
-// Networking: push pull, fetch
+
 
 int main(int argc, char *argv[]) {
+  // Argument parser for command line interface.
   ArgParser parser(argv[0], "Jit Version Control System.");
   parser.add_command("help", "Show this help message").set_callback([&]() {
     std::cout << parser.help_message() << std::endl;
   });
 
-  // Staging Area and Commits
+  // Initializing a jit repository.
   parser.add_command("init", "Initialize a repository").set_callback([&]() {
     std::filesystem::path repo = "./.jit";
     if (std::filesystem::exists(repo))
@@ -34,6 +32,7 @@ int main(int argc, char *argv[]) {
     refs.updateHead("main");
   });
 
+  // Adding files or directories to the staging area.
   std::string addPath;
   parser.add_command("add", "Add file to the staging area")
       .set_callback([&]() {
@@ -45,6 +44,7 @@ int main(int argc, char *argv[]) {
       })
       .add_argument(addPath, "File Path", "");
 
+  // Commiting changes into the repository.
   std::string commitMessage;
   parser.add_command("commit", "Add file to the staging area")
       .set_callback([&]() {
@@ -71,6 +71,7 @@ int main(int argc, char *argv[]) {
       .add_option(commitMessage, "-m,--message",
                   "Must be between double quotations.");
 
+  // Shows the logs of the commits stored in the repository.
   parser.add_command("log", "Display the log of the commits")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
@@ -86,9 +87,10 @@ int main(int argc, char *argv[]) {
 
         std::cout << store.retrieveLog(lastCommit);
       });
-
+  
+  // Computes the difference between different commits and files.
   std::string filePath1, filePath2;
-  parser.add_command("diff", "")
+  parser.add_command("diff", "Computes the differences between files")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
         ObjectStore store(repo / "objects");
@@ -271,7 +273,9 @@ int main(int argc, char *argv[]) {
       .add_argument(filePath1, "", "", false)
       .add_argument(filePath2, "", "", false);
 
-  parser.add_command("status", "").set_callback([&]() {
+
+  // Checks status of the the staging area
+  parser.add_command("status", "Shows the tracked and untracked files in the working repository.").set_callback([&]() {
     std::filesystem::path repo = repoRoot();
     std::filesystem::path wd = repo.parent_path();
     ObjectStore store(repo / "objects");
@@ -349,7 +353,7 @@ int main(int argc, char *argv[]) {
   });
 
   std::string target;
-  parser.add_command("checkout", "")
+  parser.add_command("checkout", "Switches to a branch or to a commit")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
         std::filesystem::path wd = repo.parent_path();
@@ -371,12 +375,8 @@ int main(int argc, char *argv[]) {
       })
       .add_argument(target, "Commit hash", "");
 
-  // parser.add_command("branch", "").set_callback([&]() {
-  //   // Print Branches and Working Branch
-  // });
-
   std::string branchName;
-  parser.add_command("branch", "")
+  parser.add_command("branch", "Creates a branch in the working directory.")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
         Refs refs(repo / "refs", repo / "HEAD");
@@ -390,7 +390,7 @@ int main(int argc, char *argv[]) {
       })
       .add_argument(branchName, "", "", false);
 
-  parser.add_command("merge", "")
+  parser.add_command("merge", "Merge two branches together.")
       .set_callback([&]() {
         std::filesystem::path repo = repoRoot();
         std::filesystem::path wd = repo.parent_path();
