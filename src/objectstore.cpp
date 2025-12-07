@@ -1,5 +1,6 @@
 #include "objectstore.h"
 #include "gitobjects.h"
+#include "hashmap.h"
 #include "helpers.h"
 #include "vector.h"
 #include <filesystem>

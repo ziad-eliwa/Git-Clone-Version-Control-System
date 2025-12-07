@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
         if (refs.getMergeHead() != "") {
           std::string h = refs.resolve(refs.getMergeHead());
           newCommit->addParentHash(h);
+          refs.updateMergeHead("");
         }
 
         store.store(newCommit);

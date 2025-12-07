@@ -17,6 +17,8 @@ Refs::Refs(std::filesystem::path r, std::filesystem::path h,
 }
 
 bool Refs::isBranch(std::string s) {
+  if (s.empty())
+    return false;
   if (s.length() != 8)
     return true;
 
