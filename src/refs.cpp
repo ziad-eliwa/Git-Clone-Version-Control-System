@@ -4,10 +4,11 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <utility>
 
-Refs::Refs(std::filesystem::path r, std::filesystem::path h)
+Refs::Refs(std::filesystem::path r, std::filesystem::path h,
+           std::filesystem::path m)
     : refsPath(r), headPath(h) {
+  mergeHeadPath = h.parent_path() / "MERGE_HEAD";
 
   if (!std::filesystem::exists(refsPath)) {
     if (!std::filesystem::create_directories(refsPath))
@@ -53,10 +54,24 @@ std::string Refs::getHead() {
     return h.substr(4);
   return h;
 }
+std::string Refs::getMergeHead() {
+  std::string h = readFile(mergeHeadPath);
+  if (h.rfind("ref ", 0) == 0)
+    return h.substr(4);
+  return h;
+}
 void Refs::updateHead(std::string target, bool r) {
   r &= isBranch(target);
 
   std::ofstream h(headPath);
+  if (r)
+    h << "ref ";
+  h << target;
+}
+void Refs::updateMergeHead(std::string target, bool r) {
+  r &= isBranch(target);
+
+  std::ofstream h(mergeHeadPath);
   if (r)
     h << "ref ";
   h << target;

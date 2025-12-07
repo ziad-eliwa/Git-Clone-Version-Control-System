@@ -10,6 +10,8 @@ add_library(DCVS_lib
   src/argparser.cpp
   src/argparser.h
   src/deque.h
+  src/diff.cpp
+  src/diff.h
   src/hashmap.cpp
   src/hashmap.h
   src/helpers.cpp

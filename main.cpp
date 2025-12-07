@@ -1,5 +1,6 @@
 #include "src/argparser.h"
 #include "src/deque.h"
+#include "src/diff.h"
 #include "src/gitobjects.h"
 #include "src/hashmap.h"
 #include "src/helpers.h"
@@ -7,14 +8,14 @@
 #include "src/objectstore.h"
 #include "src/refs.h"
 #include "src/vector.h"
-#include <diff.cpp>
 #include <exception>
 #include <filesystem>
+#include <fstream>
+#include <functional>
 #include <iostream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
-
 
 int main(int argc, char *argv[]) {
   // Argument parser for command line interface.
@@ -64,6 +65,11 @@ int main(int argc, char *argv[]) {
         if (current != "")
           newCommit->addParentHash(current);
 
+        if (refs.getMergeHead() != "") {
+          std::string h = refs.resolve(refs.getMergeHead());
+          newCommit->addParentHash(h);
+        }
+
         store.store(newCommit);
         if (refs.isHeadBranch())
           refs.updateRef(refs.getHead(), newCommit->getHash());
@@ -87,7 +93,7 @@ int main(int argc, char *argv[]) {
 
         std::cout << store.retrieveLog(lastCommit);
       });
-  
+
   // Computes the difference between different commits and files.
   std::string filePath1, filePath2;
   parser.add_command("diff", "Computes the differences between files")
@@ -273,84 +279,87 @@ int main(int argc, char *argv[]) {
       .add_argument(filePath1, "", "", false)
       .add_argument(filePath2, "", "", false);
 
-
   // Checks status of the the staging area
-  parser.add_command("status", "Shows the tracked and untracked files in the working repository.").set_callback([&]() {
-    std::filesystem::path repo = repoRoot();
-    std::filesystem::path wd = repo.parent_path();
-    ObjectStore store(repo / "objects");
-    IndexStore index(repo / "index", store);
+  parser
+      .add_command(
+          "status",
+          "Shows the tracked and untracked files in the working repository.")
+      .set_callback([&]() {
+        std::filesystem::path repo = repoRoot();
+        std::filesystem::path wd = repo.parent_path();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
 
-    enum class Status { Clean, NewFile, Modified, Deleted };
+        enum class Status { Clean, NewFile, Modified, Deleted };
 
-    // TODO: improve array search
-    HashMap<std::string, Status> status;
+        // TODO: improve array search
+        HashMap<std::string, Status> status;
 
-    Vector<std::string> untracked;
-    for (auto it = std::filesystem::recursive_directory_iterator(wd);
-         it != std::filesystem::end(it); it++) {
-      const auto &entry = *it;
-      if (entry.path().filename().string().rfind(".jit", 0) == 0) {
-        it.disable_recursion_pending();
-        continue;
-      }
+        Vector<std::string> untracked;
+        for (auto it = std::filesystem::recursive_directory_iterator(wd);
+             it != std::filesystem::end(it); it++) {
+          const auto &entry = *it;
+          if (entry.path().filename().string().rfind(".jit", 0) == 0) {
+            it.disable_recursion_pending();
+            continue;
+          }
 
-      if (std::filesystem::is_regular_file(entry))
-        untracked.push_back(pathString(entry));
-    }
-
-    for (auto &[path, hash] : index.getEntries()) {
-      bool found = false;
-      for (auto &p : untracked) {
-        if (p == path) {
-          found = true;
-          break;
+          if (std::filesystem::is_regular_file(entry))
+            untracked.push_back(pathString(entry));
         }
-      }
-      if (found) {
-        Blob untrackedBlob = Blob(readFile(wd / path));
-        std::string untrackedHash = untrackedBlob.getHash();
-        if (untrackedHash != hash)
-          status[path] = Status::Modified;
-      } else {
-        status[path] = Status::Deleted;
-      }
-    }
 
-    for (auto &path : untracked) {
-      bool found = false;
-      for (auto &[p, _] : index.getEntries()) {
-        if (p == path) {
-          found = true;
-          break;
+        for (auto &[path, hash] : index.getEntries()) {
+          bool found = false;
+          for (auto &p : untracked) {
+            if (p == path) {
+              found = true;
+              break;
+            }
+          }
+          if (found) {
+            Blob untrackedBlob = Blob(readFile(wd / path));
+            std::string untrackedHash = untrackedBlob.getHash();
+            if (untrackedHash != hash)
+              status[path] = Status::Modified;
+          } else {
+            status[path] = Status::Deleted;
+          }
         }
-      }
-      if (!found)
-        status[path] = Status::NewFile;
-    }
 
-    bool clean = true;
-    // TODO: sort by status
-    for (auto [path, status] : status) {
-      switch (status) {
-      case Status::NewFile:
-        std::cout << "new file: " << path << std::endl;
-        clean = false;
-        break;
-      case Status::Modified:
-        std::cout << "modified: " << path << std::endl;
-        clean = false;
-        break;
-      case Status::Deleted:
-        std::cout << "deleted: " << path << std::endl;
-        clean = false;
-        break;
-      }
-    }
-    if (clean) {
-      std::cout << "Working tree clean." << std::endl;
-    }
-  });
+        for (auto &path : untracked) {
+          bool found = false;
+          for (auto &[p, _] : index.getEntries()) {
+            if (p == path) {
+              found = true;
+              break;
+            }
+          }
+          if (!found)
+            status[path] = Status::NewFile;
+        }
+
+        bool clean = true;
+        // TODO: sort by status
+        for (auto [path, status] : status) {
+          switch (status) {
+          case Status::NewFile:
+            std::cout << "new file: " << path << std::endl;
+            clean = false;
+            break;
+          case Status::Modified:
+            std::cout << "modified: " << path << std::endl;
+            clean = false;
+            break;
+          case Status::Deleted:
+            std::cout << "deleted: " << path << std::endl;
+            clean = false;
+            break;
+          }
+        }
+        if (clean) {
+          std::cout << "Working tree clean." << std::endl;
+        }
+      });
 
   std::string target;
   parser.add_command("checkout", "Switches to a branch or to a commit")
@@ -440,9 +449,65 @@ int main(int argc, char *argv[]) {
               dq.push_back(next);
           }
         }
+
         // divergent branches
+        using Path = std::filesystem::path;
+        using H = HashMap<Path, Blob *>;
+        HashMap<Path, Blob *> ourBlobs, otherBlobs;
+
+        std::function<void(std::string, Path, HashMap<Path, Blob *> &)>
+            collect = [&](std::string hash, std::filesystem::path p,
+                          HashMap<Path, Blob *> &h) {
+              GitObject *obj = store.retrieve(hash);
+              if (Blob *b = dynamic_cast<Blob *>(obj)) {
+                h[p] = b;
+              } else if (Tree *t = dynamic_cast<Tree *>(obj)) {
+                for (auto entry : t->getEntries())
+                  collect(entry.getHash(), p / entry.name, h);
+              }
+            };
+
+        collect(ourHead->getTreeHash(), wd, ourBlobs);
+        collect(otherHead->getTreeHash(), wd, otherBlobs);
+
+        for (auto [path, blobp] : otherBlobs) {
+          Blob *our = ourBlobs[path];
+          if (our == nullptr) {
+            // new incoming file
+            store.reconstruct(blobp->getHash(), path);
+          } else {
+            Vector<std::string> d = diff(split(our->getContent(), '\n'),
+                                         split(blobp->getContent(), '\n'));
+            std::string newContent;
+
+            int marker = -1;
+            auto advanceMarker = [&]() {
+              if (marker == 0)
+                newContent += "<<<<<<<<< HEAD\n";
+              if (marker == 1)
+                newContent += "========\n";
+              if (marker == 2)
+                newContent += ">>>>>>>>> " + branchName + '\n';
+              marker++;
+              marker %= 3;
+            };
+            for (auto l : d) {
+              int x = std::string(" -+").find(l[0]);
+              while (marker != x)
+                advanceMarker();
+              newContent += l.substr(1) + '\n';
+            }
+            while (marker != 0)
+              advanceMarker();
+
+            std::ofstream file(path);
+            file << newContent;
+          }
+
+          refs.updateMergeHead(refs.resolve(branchName));
+        }
       })
-      .add_argument(branchName, "", "");
+      .add_argument(branchName, "branch name", "branch to merge");
 
   try {
     parser.parse(argc, argv);

@@ -1,4 +1,4 @@
-#include "vector.h"
+#include "diff.h"
 #include <algorithm>
 
 Vector<std::string> diff(const Vector<std::string> &file1, const Vector<std::string> &file2)

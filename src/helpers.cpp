@@ -1,5 +1,5 @@
-#include "hashmap.h"
 #include "helpers.h"
+#include "hashmap.h"
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -54,6 +54,4 @@ std::string readFile(std::filesystem::path path) {
   return content;
 }
 
-void DEBUG() {
-  std::cout << "DEBUG\n";
-}
+void DEBUG() { std::cout << "DEBUG\n"; }
