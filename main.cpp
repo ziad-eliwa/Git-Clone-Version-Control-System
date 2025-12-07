@@ -1,19 +1,19 @@
-#include "argparser.h"
-#include "deque.h"
-#include "gitobjects.h"
-#include "hashmap.h"
-#include "helpers.h"
-#include "index.h"
-#include "objectstore.h"
-#include "refs.h"
-#include "vector.h"
+#include "src/argparser.h"
+#include "src/deque.h"
+#include "src/gitobjects.h"
+#include "src/hashmap.h"
+#include "src/helpers.h"
+#include "src/index.h"
+#include "src/objectstore.h"
+#include "src/refs.h"
+#include "src/vector.h"
+#include <diff.cpp>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include <diff.cpp>
 // We store the instructions we have here
 // Staging Area: add, commit, log, status, reset
 // Branching: , merge, rebase, diff
@@ -24,27 +24,6 @@ int main(int argc, char *argv[]) {
   parser.add_command("help", "Show this help message").set_callback([&]() {
     std::cout << parser.help_message() << std::endl;
   });
-
-  // serializing and storing the tree
-  // This command is only for testing
-  // std::string filePath;
-  // parser.add_command("store", "Insert file or directory into the object
-  // store")
-  //     .set_callback([&]() {
-  //       std::cout << filePath << std::endl;
-  //       store.store(filePath);
-  //     })
-  //     .add_argument(filePath, "file_path", "");
-
-  // deserializing the tree
-  // This command is only for testing
-  // std::string treeHash;
-  // parser.add_command("read", "Read hash")
-  //     .set_callback([&]() {
-  //       Tree retrievedTree = store.(treeHash);
-  //       std::cout << retrievedTree.serialize() << "\n";
-  //     })
-  //     .add_argument(treeHash, "file Hash", "");
 
   // Staging Area and Commits
   parser.add_command("init", "Initialize a repository").set_callback([&]() {
@@ -80,7 +59,7 @@ int main(int argc, char *argv[]) {
         store.store(&commitTree);
 
         Commit *newCommit =
-            new Commit(commitMessage, "pharaok", commitTree.getHash());
+            new Commit(commitMessage, "pharoak", commitTree.getHash());
 
         if (current != "")
           newCommit->addParentHash(current);
@@ -107,31 +86,190 @@ int main(int argc, char *argv[]) {
 
         std::cout << store.retrieveLog(lastCommit);
       });
-  
+
   std::string filePath1, filePath2;
   parser.add_command("diff", "")
       .set_callback([&]() {
+        std::filesystem::path repo = repoRoot();
+        ObjectStore store(repo / "objects");
+        IndexStore index(repo / "index", store);
+        Refs refs(repo / "refs", repo / "HEAD");
+        std::string current = refs.resolve("HEAD");
+
+        if (filePath1.empty() && filePath2.empty()) {
+          // Diff between current commit and Staging area
+          Tree commitTree = index.writeTree();
+          store.store(&commitTree);
+
+          HashMap<std::string, std::string> Blobs;
+
+          Vector<TreeEntry> currentTree = commitTree.getEntries();
+          for (int i = 0; i < currentTree.size(); i++) {
+            if (currentTree[i].type == "blob") {
+              Blobs.set(currentTree[i].name, currentTree[i].hash);
+            } else if (currentTree[i].type == "tree") {
+              GitObject *obj = store.retrieve(currentTree[i].hash);
+              if (Tree *tree = dynamic_cast<Tree *>(obj)) {
+                Vector<TreeEntry> subentries = tree->getEntries();
+                for (int j = 0; j < subentries.size(); j++) {
+                  currentTree.push_back(subentries[j]);
+                }
+              }
+            }
+          }
+
+          Vector<std::string> results;
+          GitObject *commitObj = store.retrieve(current);
+          if (Commit *commit = dynamic_cast<Commit *>(commitObj)) {
+            std::string tree = commit->getTreeHash();
+            GitObject *treeObj = store.retrieve(tree);
+            if (Tree *tree = dynamic_cast<Tree *>(treeObj)) {
+              Vector<TreeEntry> retrievedTree = tree->getEntries();
+              for (int i = 0; i < retrievedTree.size(); i++) {
+                if (retrievedTree[i].type == "blob") {
+                  std::string blobHash = Blobs.get(retrievedTree[i].name);
+                  results.push_back("---" + retrievedTree[i].name + "---");
+                  if (retrievedTree[i].hash == blobHash) {
+                    results.push_back("No Difference Found");
+                  } else {
+                    Vector<std::string> file1;
+                    Vector<std::string> file2;
+                    GitObject *blobObj1 = store.retrieve(retrievedTree[i].hash);
+                    GitObject *blobObj2 = store.retrieve(blobHash);
+                    if (Blob *blob1 = dynamic_cast<Blob *>(blobObj1)) {
+                      if (Blob *blob2 = dynamic_cast<Blob *>(blobObj2)) {
+                        file1 = split(blob1->getContent(), '\n');
+                        file2 = split(blob2->getContent(), '\n');
+                      }
+                    }
+
+                    Vector<std::string> differences = diff(file1, file2);
+                    for (int k = 0; k < differences.size(); k++) {
+                      results.push_back(differences[k]);
+                    }
+                  }
+                } else if (retrievedTree[i].type == "tree") {
+                  GitObject *obj = store.retrieve(retrievedTree[i].hash);
+                  if (Tree *tree = dynamic_cast<Tree *>(obj)) {
+                    Vector<TreeEntry> subentries = tree->getEntries();
+                    for (int j = 0; j < subentries.size(); j++) {
+                      retrievedTree.push_back(subentries[j]);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          std::cout << "File Differences:" << "\n"
+                    << "================" << "\n";
+          for (auto str : results) {
+            std::cout << str << "\n";
+          }
+        } else if (!filePath2.empty()) {
+          // Diff between a file and another
           std::ifstream file1(filePath1), file2(filePath2);
           Vector<std::string> lines1, lines2;
           std::string line;
 
           if (!file1.is_open()) {
-              throw std::runtime_error("Cannot open file: " + filePath1);
+            throw std::runtime_error("Cannot open file: " + filePath1);
           }
           while (std::getline(file1, line)) {
-              lines1.push_back(line);
+            lines1.push_back(line);
           }
           if (!file2.is_open()) {
-              throw std::runtime_error("Cannot open file: " + filePath2);
+            throw std::runtime_error("Cannot open file: " + filePath2);
           }
           while (std::getline(file2, line)) {
-              lines2.push_back(line);
+            lines2.push_back(line);
           }
           Vector<std::string> result = diff(lines1, lines2);
-          for (const auto &line : result) std::cout << line << "\n";
+          for (const auto &line : result)
+            std::cout << line << "\n";
+        } else {
+          // Diff between a commit and current commit
+          HashMap<std::string, std::string> Blobs;
+
+          GitObject *headObj = store.retrieve(current);
+          if (Commit *commit = dynamic_cast<Commit *>(headObj)) {
+            std::string tree = commit->getTreeHash();
+            GitObject *treeObj = store.retrieve(tree);
+            if (Tree *tree = dynamic_cast<Tree *>(treeObj)) {
+              Vector<TreeEntry> currentTree = tree->getEntries();
+              for (int i = 0; i < currentTree.size(); i++) {
+                if (currentTree[i].type == "blob") {
+                  Blobs.set(currentTree[i].name, currentTree[i].hash);
+                } else if (currentTree[i].type == "tree") {
+                  GitObject *obj = store.retrieve(currentTree[i].hash);
+                  if (Tree *tree = dynamic_cast<Tree *>(obj)) {
+                    Vector<TreeEntry> subentries = tree->getEntries();
+                    for (int j = 0; j < subentries.size(); j++) {
+                      currentTree.push_back(subentries[j]);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          Vector<std::string> results;
+
+          GitObject *commitObj = store.retrieve(filePath1);
+          if (commitObj == nullptr) {
+            return void(std::cout << "Hash does not exits\n");
+          }
+          if (Commit *commit = dynamic_cast<Commit *>(commitObj)) {
+            std::string tree = commit->getTreeHash();
+            GitObject *treeObj = store.retrieve(tree);
+            if (Tree *tree = dynamic_cast<Tree *>(treeObj)) {
+              Vector<TreeEntry> retrievedTree = tree->getEntries();
+              for (int i = 0; i < retrievedTree.size(); i++) {
+                if (retrievedTree[i].type == "blob") {
+                  std::string blobHash = Blobs.get(retrievedTree[i].name);
+                  results.push_back("---" + retrievedTree[i].name + "---");
+                  if (retrievedTree[i].hash == blobHash) {
+                    results.push_back("No Difference Found");
+                  } else {
+                    Vector<std::string> file1;
+                    Vector<std::string> file2;
+
+                    GitObject *blobObj1 = store.retrieve(retrievedTree[i].hash);
+                    GitObject *blobObj2 = store.retrieve(blobHash);
+                    if (Blob *blob1 = dynamic_cast<Blob *>(blobObj1)) {
+                      if (Blob *blob2 = dynamic_cast<Blob *>(blobObj2)) {
+                        file1 = split(blob1->getContent(), '\n');
+                        file2 = split(blob2->getContent(), '\n');
+                      }
+                    }
+
+                    Vector<std::string> differences = diff(file1, file2);
+                    for (int k = 0; k < differences.size(); k++) {
+                      results.push_back(differences[k]);
+                    }
+                  }
+                } else if (retrievedTree[i].type == "tree") {
+                  GitObject *obj = store.retrieve(retrievedTree[i].hash);
+                  if (Tree *tree = dynamic_cast<Tree *>(obj)) {
+                    Vector<TreeEntry> subentries = tree->getEntries();
+                    for (int j = 0; j < subentries.size(); j++) {
+                      retrievedTree.push_back(subentries[j]);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          std::cout << "File Differences:" << "\n"
+                    << "================" << "\n";
+          for (auto str : results) {
+            std::cout << str << "\n";
+          }
+        }
       })
-      .add_argument(filePath1, "", "")
-      .add_argument(filePath2, "", "");
+      .add_argument(filePath1, "", "", false)
+      .add_argument(filePath2, "", "", false);
 
   parser.add_command("status", "").set_callback([&]() {
     std::filesystem::path repo = repoRoot();
@@ -302,7 +440,6 @@ int main(int argc, char *argv[]) {
               dq.push_back(next);
           }
         }
-
         // divergent branches
       })
       .add_argument(branchName, "", "");

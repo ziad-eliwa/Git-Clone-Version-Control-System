@@ -83,6 +83,7 @@ public:
 
     return ret;
   }
+  
   Tree writeTree() {
     Vector<IndexEntry> entries;
     for (auto &[path, hash] : indexEntries)

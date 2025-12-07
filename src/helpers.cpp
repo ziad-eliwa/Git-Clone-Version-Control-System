@@ -1,5 +1,5 @@
-#include "helpers.h"
 #include "hashmap.h"
+#include "helpers.h"
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -17,6 +17,7 @@ Vector<std::string> split(std::string str, char delim) {
     ret.push_back(str.substr(l));
   return ret;
 }
+
 std::string computeHash(std::string content) {
   return to_hex(Murmur3_32(content));
 }
@@ -51,4 +52,8 @@ std::string readFile(std::filesystem::path path) {
   std::string content((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
   return content;
+}
+
+void DEBUG() {
+  std::cout << "DEBUG\n";
 }

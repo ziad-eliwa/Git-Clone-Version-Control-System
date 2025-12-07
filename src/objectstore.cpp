@@ -52,6 +52,7 @@ GitObject *ObjectStore::store(std::filesystem::path path) {
 bool ObjectStore::exists(std::string hash) {
   return std::filesystem::exists(storePath / hash);
 }
+
 GitObject *ObjectStore::retrieve(std::string hash) {
   if (!exists(hash))
     return nullptr;

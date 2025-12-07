@@ -1,6 +1,6 @@
 #include "vector.h"
-#include <iostream>
 #include <algorithm>
+
 Vector<std::string> diff(const Vector<std::string> &file1, const Vector<std::string> &file2)
 {
     int n = file1.size(), m = file2.size();

@@ -23,3 +23,4 @@ std::string pathString(std::filesystem::path path,
                        std::filesystem::path root = "");
 
 std::string readFile(std::filesystem::path path);
+void DEBUG();

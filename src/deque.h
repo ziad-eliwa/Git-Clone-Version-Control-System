@@ -65,4 +65,5 @@ template <typename T> T deque<T>::pop_front() {
     filled--;
     return a[start++];
   }
+  return nullptr;
 }
